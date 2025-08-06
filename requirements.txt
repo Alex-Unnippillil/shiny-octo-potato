@@ -1,0 +1,10 @@
+mss==9.0.1
+pytesseract==0.3.10
+pyautogui==0.9.54
+python-dotenv==1.0.1
+openai==1.44.0
+pydantic==2.7.1
+Pillow==10.3.0
+pytest==8.3.2
+pytest-mock==3.14.0
+ruff==0.7.2
