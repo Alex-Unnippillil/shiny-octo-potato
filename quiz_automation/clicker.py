@@ -3,7 +3,10 @@ from __future__ import annotations
 
 from typing import Dict, Tuple
 
-import pyautogui
+try:  # pragma: no cover - optional dependency
+    import pyautogui  # type: ignore
+except Exception:  # pragma: no cover
+    import pyautogui_stub as pyautogui  # type: ignore
 
 LETTER_OFFSETS: Dict[str, int] = {"A": 0, "B": 40, "C": 80, "D": 120}
 

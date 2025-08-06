@@ -1,8 +1,15 @@
 """Application configuration loading using pydantic and python-dotenv."""
 from __future__ import annotations
 
-from pydantic import BaseSettings
-from dotenv import load_dotenv
+try:  # pragma: no cover - optional dependency
+    from pydantic import BaseSettings
+except Exception:  # pragma: no cover
+    from pydantic_stub import BaseSettings  # type: ignore
+
+try:  # pragma: no cover - optional dependency
+    from dotenv import load_dotenv
+except Exception:  # pragma: no cover
+    from dotenv_stub import load_dotenv  # type: ignore
 
 
 class Settings(BaseSettings):
@@ -10,6 +17,7 @@ class Settings(BaseSettings):
 
     openai_api_key: str = ""
     poll_interval: float = 0.5
+    db_path: str = "quiz_log.sqlite"
 
     class Config:
         env_file = ".env"
@@ -17,6 +25,7 @@ class Settings(BaseSettings):
 
 
 def get_settings() -> Settings:
-    """Load settings from the environment and return a Settings instance."""
+    """Load settings from the environment and return a ``Settings`` instance."""
+
     load_dotenv()
     return Settings()

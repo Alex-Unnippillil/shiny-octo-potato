@@ -1,4 +1,4 @@
-"""Minimal dotenv stub."""
+"""Fallback stub for ``python-dotenv``."""
 from __future__ import annotations
 
 

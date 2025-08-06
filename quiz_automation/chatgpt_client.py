@@ -3,8 +3,15 @@ from __future__ import annotations
 
 import json
 import time
-from openai import OpenAI
-from openai.error import OpenAIError
+
+try:  # pragma: no cover - optional dependency
+    from openai import OpenAI
+    try:  # new clients expose ``OpenAIError`` at top level
+        from openai import OpenAIError
+    except Exception:  # pragma: no cover
+        from openai.error import OpenAIError  # type: ignore
+except Exception:  # pragma: no cover
+    from openai_stub import OpenAI, OpenAIError  # type: ignore
 
 
 class ChatGPTClient:
@@ -17,9 +24,7 @@ class ChatGPTClient:
     def ask(self, question: str) -> str:
         """Send a question to the model and return the letter answer."""
 
-        system_prompt = (
-            'You answer with a single letter A-D as JSON: {"answer":"A"}'
-        )
+        system_prompt = 'You answer with a single letter A-D as JSON: {"answer":"A"}'
         for _ in range(3):
             try:
                 response = self.client.responses.create(

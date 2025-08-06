@@ -1,12 +1,12 @@
-"""Lightweight stub of pydantic's BaseSettings."""
+"""Fallback stub for pydantic.BaseSettings."""
 from __future__ import annotations
 
 import os
 from typing import Any
 
 
-class BaseSettings:
-    """Very small subset of pydantic.BaseSettings for tests."""
+class BaseSettings:  # pragma: no cover - simple stub
+    """Very small subset of ``pydantic.BaseSettings`` used in tests."""
 
     def __init__(self, **data: Any) -> None:
         for field in self.__annotations__:
