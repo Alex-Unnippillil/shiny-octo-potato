@@ -3,28 +3,46 @@
 from __future__ import annotations
 
 from threading import Event, Thread
-from typing import Callable, Tuple
-import time
+from typing import Any, Callable, Tuple
+
+from mss import mss
+from PIL import Image
+import pytesseract
+
+
+def _capture(region: Tuple[int, int, int, int]) -> Image.Image:
+    """Capture screenshot of the region using mss."""
+    left, top, width, height = region
+    monitor = {"left": left, "top": top, "width": width, "height": height}
+    with mss() as sct:
+        shot = sct.grab(monitor)
+        return Image.frombytes("RGB", shot.size, shot.rgb)
+
+
+def _ocr(img: Any) -> str:
+    """Run OCR on the image using pytesseract."""
+    return pytesseract.image_to_string(img).strip()
 
 
 class Watcher(Thread):
     """Background thread that captures a region and performs OCR."""
 
-    def __init__(self, region: Tuple[int, int, int, int], on_question: Callable[[str], None], poll_interval: float = 0.5) -> None:
+    def __init__(
+        self,
+        region: Tuple[int, int, int, int],
+        on_question: Callable[[str], None],
+        poll_interval: float = 0.5,
+        capture: Callable[[Tuple[int, int, int, int]], Any] | None = None,
+        ocr: Callable[[Any], str] | None = None,
+    ) -> None:
         super().__init__(daemon=True)
         self.region = region
         self.on_question = on_question
         self.poll_interval = poll_interval
+        self.capture = capture or _capture
+        self.ocr = ocr or _ocr
         self.stop_flag = Event()
         self._last_text = ""
-
-    def capture(self):  # pragma: no cover - to be mocked
-        """Capture screenshot of region."""
-        raise NotImplementedError
-
-    def ocr(self, img):  # pragma: no cover - to be mocked
-        """Run OCR on image."""
-        raise NotImplementedError
 
     def is_new_question(self, text: str) -> bool:
         """Check whether text differs from last captured question."""
@@ -32,9 +50,9 @@ class Watcher(Thread):
 
     def run(self) -> None:
         while not self.stop_flag.is_set():
-            img = self.capture()
+            img = self.capture(self.region)
             text = self.ocr(img)
             if self.is_new_question(text):
                 self._last_text = text
                 self.on_question(text)
-            time.sleep(self.poll_interval)
+            self.stop_flag.wait(self.poll_interval)
