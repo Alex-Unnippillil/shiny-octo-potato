@@ -2,17 +2,22 @@
 
 from __future__ import annotations
 
+from functools import lru_cache
+
 from dotenv import load_dotenv
-from pydantic import BaseModel
+from pydantic import Field
+from pydantic_settings import BaseSettings
 
-load_dotenv()
 
-
-class Settings(BaseModel):
+class Settings(BaseSettings):
     """Runtime settings for the quiz automation tool."""
 
-    openai_api_key: str = ""
-    poll_interval: float = 0.5
+    openai_api_key: str = Field("", env="OPENAI_API_KEY")
+    poll_interval: float = Field(0.5, env="POLL_INTERVAL")
 
 
-settings = Settings()
+@lru_cache
+def get_settings() -> Settings:
+    load_dotenv()
+    return Settings()
+

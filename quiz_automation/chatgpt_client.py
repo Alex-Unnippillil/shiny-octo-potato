@@ -6,13 +6,14 @@ import json
 
 from openai import OpenAI
 
-from .config import settings
+from .config import get_settings
 
 
 class ChatGPTClient:
     """Client for querying ChatGPT models."""
 
     def __init__(self) -> None:
+        settings = get_settings()
         self.client = OpenAI(api_key=settings.openai_api_key)
 
     def ask(self, question: str) -> str:

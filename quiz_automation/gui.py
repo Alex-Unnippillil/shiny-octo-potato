@@ -6,7 +6,7 @@ import queue
 import tkinter as tk
 from typing import Optional
 
-from .config import settings
+from .config import get_settings
 from .watcher import Watcher
 
 
@@ -30,6 +30,7 @@ class QuizGUI:
     def start(self) -> None:
         """Start the watcher thread."""
         if self.watcher is None:
+            settings = get_settings()
             self.watcher = Watcher((0, 0, 100, 100), self.on_question, settings.poll_interval)
             self.watcher.start()
             self.status_var.set("Running")
