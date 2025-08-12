@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 
 from quiz_automation.gui import QuizGUI
+from quiz_automation.region_selector import Region
 
 
 def test_gui_start_stop(monkeypatch):
@@ -8,9 +9,14 @@ def test_gui_start_stop(monkeypatch):
 
     class DummyWatcher:
         def __init__(self, *args, **kwargs):
-            started['value'] = True
+            started['value'] = started.get('value', 0) + 1
+
         def start(self):
             pass
+
+        def join(self):
+            pass
+
         stop_flag = SimpleNamespace(set=lambda: None)
 
     class DummyWidget:
@@ -43,10 +49,21 @@ def test_gui_start_stop(monkeypatch):
     dummy_tk = SimpleNamespace(
         Tk=DummyTk, Button=DummyWidget, Label=DummyWidget, StringVar=DummyStringVar
     )
+    calls = {'count': 0}
+
+    def dummy_select_region() -> Region:
+        calls['count'] += 1
+        return Region(0, 0, 1, 1)
+
     monkeypatch.setattr("quiz_automation.gui.tk", dummy_tk)
     monkeypatch.setattr("quiz_automation.gui.Watcher", DummyWatcher)
+    monkeypatch.setattr("quiz_automation.gui.select_region", dummy_select_region)
+
     gui = QuizGUI()
     gui.start()
-    assert started['value']
+    gui.stop()
+    gui.start()
+    assert calls['count'] == 1
+    assert started['value'] == 2
     gui.stop()
     assert gui.watcher is None
