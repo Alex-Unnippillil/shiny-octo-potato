@@ -15,6 +15,9 @@ class ChatGPTClient:
     """Client for querying ChatGPT models."""
 
     def __init__(self) -> None:
+        if not settings.openai_api_key:
+            msg = "OpenAI API key is required"
+            raise ValueError(msg)
         self.client = OpenAI(api_key=settings.openai_api_key)
 
     def ask(self, question: str) -> str:
