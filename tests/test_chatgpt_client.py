@@ -18,7 +18,12 @@ class DummyClient:
 
 @pytest.fixture(autouse=True)
 def patch_openai(monkeypatch):
-    monkeypatch.setattr("quiz_automation.chatgpt_client.OpenAI", lambda api_key: DummyClient())
+    monkeypatch.setattr(
+        "quiz_automation.chatgpt_client.OpenAI", lambda api_key: DummyClient()
+    )
+    monkeypatch.setattr(
+        "quiz_automation.chatgpt_client.settings.openai_api_key", "test-key"
+    )
 
 
 def test_chatgpt_client_parsing():
@@ -79,3 +84,11 @@ def test_chatgpt_client_retry(monkeypatch):
     assert client.ask("question") == "A"
     assert flaky.calls == 2
     assert sleeps == [1.0]
+
+
+def test_chatgpt_client_requires_api_key(monkeypatch):
+    monkeypatch.setattr(
+        "quiz_automation.chatgpt_client.settings.openai_api_key", ""
+    )
+    with pytest.raises(ValueError, match="API key is required"):
+        ChatGPTClient()

@@ -15,8 +15,7 @@ class ChatGPTClient:
     """Client for querying ChatGPT models."""
 
     def __init__(self) -> None:
-        self.settings = get_settings()
-        self.client = OpenAI(api_key=self.settings.openai_api_key)
+
 
     def ask(self, question: str) -> str:
         """Send question to model and return parsed answer letter."""
