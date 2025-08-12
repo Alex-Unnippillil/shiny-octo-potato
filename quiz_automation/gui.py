@@ -6,7 +6,13 @@ import queue
 import tkinter as tk
 from typing import Optional
 
+from datetime import datetime
+from pathlib import Path
+
+from .chatgpt_client import ChatGPTClient
+from .clicker import click_answer
 from .config import settings
+from .logger import QuizLogger
 from .watcher import Watcher
 from .region_selector import Region, select_region
 
@@ -21,6 +27,9 @@ class QuizGUI:
         self.event_queue: "queue.Queue[str]" = queue.Queue()
         self.watcher: Optional[Watcher] = None
         self.region: Optional[Region] = None
+        self.client = ChatGPTClient()
+        self.click = click_answer
+        self.logger = QuizLogger(Path("quiz_log.db"))
 
         start_btn = tk.Button(self.root, text="Start", command=self.start)
         start_btn.pack()
@@ -28,6 +37,7 @@ class QuizGUI:
         stop_btn.pack()
         tk.Label(self.root, textvariable=self.status_var).pack()
         self.root.after(100, self.process_events)
+        self.root.protocol("WM_DELETE_WINDOW", self.shutdown)
 
     def start(self) -> None:
         """Start the watcher thread."""
@@ -47,7 +57,13 @@ class QuizGUI:
             self.status_var.set("Stopped")
 
     def on_question(self, text: str) -> None:
-        self.event_queue.put(text)
+        answer = self.client.ask(text)
+        if self.region is None:  # pragma: no cover - defensive
+            return
+        x, y = self.click(answer, self.region.as_tuple())
+        ts = datetime.now().isoformat()
+        self.logger.log(ts, text, answer, x, y)
+        self.event_queue.put(f"{text} -> {answer}")
 
     def process_events(self) -> None:
         try:
@@ -59,3 +75,8 @@ class QuizGUI:
 
     def run(self) -> None:
         self.root.mainloop()
+
+    def shutdown(self) -> None:
+        self.stop()
+        self.logger.close()
+        self.root.destroy()
