@@ -8,6 +8,7 @@ from typing import Optional
 
 from .config import settings
 from .watcher import Watcher
+from .region_selector import Region, select_region
 
 
 class QuizGUI:
@@ -19,6 +20,7 @@ class QuizGUI:
         self.status_var = tk.StringVar(value="Idle")
         self.event_queue: "queue.Queue[str]" = queue.Queue()
         self.watcher: Optional[Watcher] = None
+        self.region: Optional[Region] = None
 
         start_btn = tk.Button(self.root, text="Start", command=self.start)
         start_btn.pack()
@@ -30,7 +32,9 @@ class QuizGUI:
     def start(self) -> None:
         """Start the watcher thread."""
         if self.watcher is None:
-            self.watcher = Watcher((0, 0, 100, 100), self.on_question, settings.poll_interval)
+            if self.region is None:
+                self.region = select_region()
+            self.watcher = Watcher(self.region.as_tuple(), self.on_question, settings.poll_interval)
             self.watcher.start()
             self.status_var.set("Running")
 
@@ -38,6 +42,7 @@ class QuizGUI:
         """Stop the watcher thread."""
         if self.watcher:
             self.watcher.stop_flag.set()
+            self.watcher.join()
             self.watcher = None
             self.status_var.set("Stopped")
 
