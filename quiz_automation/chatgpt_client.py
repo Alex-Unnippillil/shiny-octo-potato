@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 
+import time
+
 from openai import OpenAI
 
 from .config import settings
@@ -17,9 +19,23 @@ class ChatGPTClient:
 
     def ask(self, question: str) -> str:
         """Send question to model and return parsed answer letter."""
-        completion = self.client.responses.create(
-            model="gpt-4o-mini-high",
-            input=f"Answer the quiz question with a single letter in JSON: {question}",
-        )
-        data = json.loads(completion.output[0].content[0].text)
-        return data.get("answer", "")
+        prompt = f"Answer the quiz question with a single letter in JSON: {question}"
+        backoff = 1.0
+        for attempt in range(3):
+            try:
+                completion = self.client.responses.create(
+                    model=settings.openai_model,
+                    temperature=settings.openai_temperature,
+                    input=prompt,
+                )
+                try:
+                    data = json.loads(completion.output[0].content[0].text)
+                    return data.get("answer", "")
+                except (KeyError, IndexError, json.JSONDecodeError):
+                    return "Error: malformed response"
+            except Exception:  # pragma: no cover - depends on API failures
+                if attempt == 2:
+                    return "Error: API request failed"
+                time.sleep(backoff)
+                backoff *= 2
+        return ""  # pragma: no cover

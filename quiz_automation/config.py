@@ -12,6 +12,8 @@ class Settings(BaseModel):
     """Runtime settings for the quiz automation tool."""
 
     openai_api_key: str = ""
+    openai_model: str = "gpt-4o-mini-high"
+    openai_temperature: float = 0.0
     poll_interval: float = 0.5
 
 
