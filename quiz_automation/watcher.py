@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from threading import Event, Thread
 from typing import Any, Callable, Tuple
 
@@ -34,6 +35,7 @@ class Watcher(Thread):
         poll_interval: float = 0.5,
         capture: Callable[[Tuple[int, int, int, int]], Any] | None = None,
         ocr: Callable[[Any], str] | None = None,
+        on_error: Callable[[Exception], None] | None = None,
     ) -> None:
         super().__init__(daemon=True)
         self.region = region
@@ -41,6 +43,7 @@ class Watcher(Thread):
         self.poll_interval = poll_interval
         self.capture = capture or _capture
         self.ocr = ocr or _ocr
+        self.on_error = on_error
         self.stop_flag = Event()
         self._last_text = ""
 
@@ -50,8 +53,23 @@ class Watcher(Thread):
 
     def run(self) -> None:
         while not self.stop_flag.is_set():
-            img = self.capture(self.region)
-            text = self.ocr(img)
+            try:
+                img = self.capture(self.region)
+            except Exception as exc:  # pragma: no cover - logging behaviour
+                logging.exception("Screenshot capture failed")
+                if self.on_error:
+                    self.on_error(exc)
+                self.stop_flag.wait(self.poll_interval)
+                continue
+
+            try:
+                text = self.ocr(img)
+            except Exception as exc:  # pragma: no cover - logging behaviour
+                logging.exception("OCR failed")
+                if self.on_error:
+                    self.on_error(exc)
+                self.stop_flag.wait(self.poll_interval)
+                continue
             if self.is_new_question(text):
                 self._last_text = text
                 self.on_question(text)
