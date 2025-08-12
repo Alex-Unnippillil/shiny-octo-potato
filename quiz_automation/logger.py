@@ -31,3 +31,13 @@ class QuizLogger:
             (ts, question, answer, x, y),
         )
         self.conn.commit()
+
+    def close(self) -> None:
+        """Close the underlying SQLite connection."""
+        self.conn.close()
+
+    def __enter__(self) -> "QuizLogger":
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> None:
+        self.close()
