@@ -6,13 +6,7 @@ import queue
 import tkinter as tk
 from typing import Optional
 
-from datetime import datetime
-from pathlib import Path
 
-from .chatgpt_client import ChatGPTClient
-from .clicker import click_answer
-from .config import settings
-from .logger import QuizLogger
 from .watcher import Watcher
 from .region_selector import Region, select_region
 
@@ -27,9 +21,7 @@ class QuizGUI:
         self.event_queue: "queue.Queue[str]" = queue.Queue()
         self.watcher: Optional[Watcher] = None
         self.region: Optional[Region] = None
-        self.client = ChatGPTClient()
-        self.click = click_answer
-        self.logger = QuizLogger(Path("quiz_log.db"))
+
 
         start_btn = tk.Button(self.root, text="Start", command=self.start)
         start_btn.pack()
@@ -44,7 +36,9 @@ class QuizGUI:
         if self.watcher is None:
             if self.region is None:
                 self.region = select_region()
-            self.watcher = Watcher(self.region.as_tuple(), self.on_question, settings.poll_interval)
+            self.watcher = Watcher(
+                self.region.as_tuple(), self.on_question, self.settings.poll_interval
+            )
             self.watcher.start()
             self.status_var.set("Running")
 
