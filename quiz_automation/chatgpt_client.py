@@ -8,17 +8,14 @@ import time
 
 from openai import OpenAI
 
-from .config import settings
+from .config import get_settings
 
 
 class ChatGPTClient:
     """Client for querying ChatGPT models."""
 
     def __init__(self) -> None:
-        if not settings.openai_api_key:
-            msg = "OpenAI API key is required"
-            raise ValueError(msg)
-        self.client = OpenAI(api_key=settings.openai_api_key)
+
 
     def ask(self, question: str) -> str:
         """Send question to model and return parsed answer letter."""
@@ -27,8 +24,8 @@ class ChatGPTClient:
         for attempt in range(3):
             try:
                 completion = self.client.responses.create(
-                    model=settings.openai_model,
-                    temperature=settings.openai_temperature,
+                    model=self.settings.openai_model,
+                    temperature=self.settings.openai_temperature,
                     input=prompt,
                 )
                 try:

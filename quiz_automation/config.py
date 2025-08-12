@@ -2,19 +2,29 @@
 
 from __future__ import annotations
 
+import os
+
 from dotenv import load_dotenv
-from pydantic import BaseModel
+from pydantic import Field
+from pydantic_settings import BaseSettings
 
-load_dotenv()
 
-
-class Settings(BaseModel):
+class Settings(BaseSettings):
     """Runtime settings for the quiz automation tool."""
 
-    openai_api_key: str = ""
-    openai_model: str = "gpt-4o-mini-high"
-    openai_temperature: float = 0.0
-    poll_interval: float = 0.5
+    openai_api_key: str = Field(..., env="OPENAI_API_KEY")
+    openai_model: str = Field("gpt-4o-mini-high", env="OPENAI_MODEL")
+    openai_temperature: float = Field(0.0, env="OPENAI_TEMPERATURE")
+    poll_interval: float = Field(0.5, env="POLL_INTERVAL")
 
 
-settings = Settings()
+def get_settings() -> Settings:
+    """Return runtime configuration loaded from environment variables."""
+    load_dotenv()
+    return Settings(
+        openai_api_key=os.getenv("OPENAI_API_KEY", ""),
+        openai_model=os.getenv("OPENAI_MODEL", "gpt-4o-mini-high"),
+        openai_temperature=float(os.getenv("OPENAI_TEMPERATURE", 0.0)),
+        poll_interval=float(os.getenv("POLL_INTERVAL", 0.5)),
+    )
+

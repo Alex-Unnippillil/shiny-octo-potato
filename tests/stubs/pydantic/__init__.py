@@ -1,6 +1,11 @@
-"""Minimal stub of Pydantic BaseModel."""
+"""Minimal stubs for Pydantic features used in tests."""
 
 from __future__ import annotations
+
+
+def Field(default, **kwargs):  # noqa: D401 - simple stub
+    """Return the provided default value."""
+    return default
 
 
 class BaseModel:

@@ -33,7 +33,13 @@ def test_gui_start_stop(monkeypatch):
         def after(self, ms, func):
             pass
 
+        def protocol(self, name, func):
+            pass
+
         def mainloop(self):
+            pass
+
+        def destroy(self):
             pass
 
     class DummyStringVar:
@@ -55,9 +61,20 @@ def test_gui_start_stop(monkeypatch):
         calls['count'] += 1
         return Region(0, 0, 1, 1)
 
+    class DummyLogger:
+        def __init__(self, path):
+            pass
+
+        def log(self, *args, **kwargs):
+            pass
+
+        def close(self):
+            pass
+
     monkeypatch.setattr("quiz_automation.gui.tk", dummy_tk)
     monkeypatch.setattr("quiz_automation.gui.Watcher", DummyWatcher)
     monkeypatch.setattr("quiz_automation.gui.select_region", dummy_select_region)
+    monkeypatch.setattr("quiz_automation.gui.QuizLogger", DummyLogger)
 
     gui = QuizGUI()
     gui.start()
