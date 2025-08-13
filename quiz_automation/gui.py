@@ -4,11 +4,17 @@ from __future__ import annotations
 
 import queue
 import tkinter as tk
+from datetime import datetime
+from pathlib import Path
 from typing import Optional
 
 
 from .watcher import Watcher
 from .region_selector import Region, select_region
+from .config import get_settings
+from .chatgpt_client import ChatGPTClient
+from .clicker import click_answer
+from .logger import QuizLogger
 
 
 class QuizGUI:
@@ -30,6 +36,9 @@ class QuizGUI:
         tk.Label(self.root, textvariable=self.status_var).pack()
         self.root.after(100, self.process_events)
         self.root.protocol("WM_DELETE_WINDOW", self.shutdown)
+        self.settings = get_settings()
+        self.client: Optional[ChatGPTClient] = None
+        self.logger = QuizLogger(Path("quiz.db"))
 
     def start(self) -> None:
         """Start the watcher thread."""
@@ -51,10 +60,12 @@ class QuizGUI:
             self.status_var.set("Stopped")
 
     def on_question(self, text: str) -> None:
+        if self.client is None:
+            self.client = ChatGPTClient()
         answer = self.client.ask(text)
         if self.region is None:  # pragma: no cover - defensive
             return
-        x, y = self.click(answer, self.region.as_tuple())
+        x, y = click_answer(answer, self.region.as_tuple())
         ts = datetime.now().isoformat()
         self.logger.log(ts, text, answer, x, y)
         self.event_queue.put(f"{text} -> {answer}")
