@@ -11,9 +11,10 @@ def test_on_question_flow(monkeypatch):
         def __init__(self):
             pass
 
-        def ask(self, question: str) -> str:
+        def ask(self, question: str):  # noqa: D401
             calls['question'] = question
-            return 'B'
+            usage = SimpleNamespace(input_tokens=1, output_tokens=2)
+            return 'B', usage, 0.5
 
     def dummy_click(letter, region, offsets_map=None, num_options=None):
         calls['click'] = (letter, region)
@@ -23,8 +24,8 @@ def test_on_question_flow(monkeypatch):
         def __init__(self, path):
             calls['path'] = str(path)
 
-        def log(self, ts, question, answer, x, y):
-            calls['log'] = (ts, question, answer, x, y)
+        def log(self, ts, question, answer, x, y, in_toks, out_toks, cost):
+            calls['log'] = (ts, question, answer, x, y, in_toks, out_toks, cost)
 
         def close(self):
             calls['closed'] = True
@@ -96,6 +97,9 @@ def test_on_question_flow(monkeypatch):
         'B',
         10,
         20,
+        1,
+        2,
+        0.5,
     )
 
     gui.shutdown()

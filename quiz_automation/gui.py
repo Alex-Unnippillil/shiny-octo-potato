@@ -28,7 +28,7 @@ class QuizGUI:
         click: Callable[[str, tuple[int, int, int, int]], tuple[int, int]] | None = None,
     ) -> None:
         self.settings = get_settings()
-        self.client = client or ChatGPTClient()
+        self.client = client
         self.logger = logger or QuizLogger(Path("events.db"))
         self.click = click or click_answer
 
@@ -54,7 +54,10 @@ class QuizGUI:
         if self.region is None:
             self.region = select_region()
         self.watcher = Watcher(
-            self.region.as_tuple(), self.on_question, self.settings.poll_interval
+            self.region.as_tuple(),
+            self.on_question,
+            self.settings.poll_interval,
+            screenshot_dir=self.settings.screenshot_dir,
         )
         self.watcher.start()
         self.status_var.set("Running")
@@ -70,12 +73,14 @@ class QuizGUI:
     def on_question(self, text: str) -> None:
         if self.client is None:
             self.client = ChatGPTClient()
-        answer = self.client.ask(text)
+        answer, usage, cost = self.client.ask(text)
         if self.region is None:  # pragma: no cover - defensive
             return
         x, y = self.click(answer, self.region.as_tuple())
         ts = datetime.now().isoformat()
-        self.logger.log(ts, text, answer, x, y)
+        input_tokens = getattr(usage, "input_tokens", 0)
+        output_tokens = getattr(usage, "output_tokens", 0)
+        self.logger.log(ts, text, answer, x, y, input_tokens, output_tokens, cost)
         self.event_queue.put(f"{text} -> {answer}")
 
     def process_events(self) -> None:
