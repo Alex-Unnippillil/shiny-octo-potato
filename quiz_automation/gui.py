@@ -70,12 +70,21 @@ class QuizGUI:
     def on_question(self, text: str) -> None:
         if self.client is None:
             self.client = ChatGPTClient()
-        answer = self.client.ask(text)
+        answer, usage, cost = self.client.ask(text)
         if self.region is None:  # pragma: no cover - defensive
             return
         x, y = self.click(answer, self.region.as_tuple())
         ts = datetime.now().isoformat()
-        self.logger.log(ts, text, answer, x, y)
+        self.logger.log(
+            ts,
+            text,
+            answer,
+            x,
+            y,
+            usage.get("input_tokens", 0),
+            usage.get("output_tokens", 0),
+            cost,
+        )
         self.event_queue.put(f"{text} -> {answer}")
 
     def process_events(self) -> None:
