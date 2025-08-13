@@ -9,13 +9,14 @@ import time
 from openai import OpenAI
 
 from .config import Settings, get_settings
+from .utils import hash_text
 
 
 # Module-level settings so tests can monkeypatch values before class instantiation.
 settings = get_settings()
 
-
-settings = get_settings()
+# Cache of question hashes to answers
+cache: dict[str, str] = {}
 
 
 class ChatGPTClient:
@@ -26,9 +27,18 @@ class ChatGPTClient:
     both the OpenAI client and runtime settings which simplifies testing.
     """
 
-    def __init__(self, client: OpenAI | None = None, settings: Settings | None = None) -> None:
-        """Initialize the client.
-
+    def __init__(
+        self,
+        client: OpenAI | None = None,
+        settings: Settings | None = None,
+        cache: dict[str, str] | None = None,
+    ) -> None:
+        """Initialize the client."""
+        self.settings = settings or globals()["settings"]
+        if not self.settings.openai_api_key:
+            raise ValueError("API key is required")
+        self.client = client or OpenAI(api_key=self.settings.openai_api_key)
+        self.cache = cache if cache is not None else globals()["cache"]
 
     def ask(self, question: str) -> str:
         """Send question to model and return parsed answer letter.
@@ -36,6 +46,9 @@ class ChatGPTClient:
         The request is retried up to three times with exponential backoff. If
         all attempts fail, an error string is returned instead of raising.
         """
+        key = hash_text(question)
+        if key in self.cache:
+            return self.cache[key]
         prompt = f"Answer the quiz question with a single letter in JSON: {question}"
         backoff = 1.0
         for attempt in range(3):
@@ -47,7 +60,9 @@ class ChatGPTClient:
                 )
                 try:
                     data = json.loads(completion.output[0].content[0].text)
-                    return data.get("answer", "")
+                    answer = data.get("answer", "")
+                    self.cache[key] = answer
+                    return answer
                 except (KeyError, IndexError, json.JSONDecodeError):
                     return "Error: malformed response"
             except Exception:  # pragma: no cover - depends on API failures
