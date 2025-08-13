@@ -15,20 +15,28 @@ from .config import Settings, get_settings
 settings = get_settings()
 
 
-settings = get_settings()
-
-
 class ChatGPTClient:
     """Client for querying ChatGPT models.
 
     This lightweight wrapper around the OpenAI client is primarily used by the
     quiz automation scripts. The constructor allows dependency injection of
-    both the OpenAI client and runtime settings which simplifies testing.
+    both the OpenAI client and runtime settings which simplifies testing, and
+    the :meth:`ask` method retries API calls with exponential backoff.
     """
 
     def __init__(self, client: OpenAI | None = None, settings: Settings | None = None) -> None:
-        """Initialize the client.
+        """Initialize the ChatGPT client.
 
+        Allows dependency injection of both a preconfigured OpenAI client and
+        runtime settings for testing. The :meth:`ask` method will retry failed
+        requests with exponential backoff.
+        """
+
+        settings = settings or globals()["settings"]
+        if not settings.openai_api_key:
+            raise ValueError("API key is required")
+        self.client = client or OpenAI(api_key=settings.openai_api_key)
+        self.settings = settings
 
     def ask(self, question: str) -> str:
         """Send question to model and return parsed answer letter.
