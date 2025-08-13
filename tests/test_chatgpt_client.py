@@ -9,7 +9,11 @@ from quiz_automation.chatgpt_client import ChatGPTClient
 class DummyResponses:
     def create(self, **_: str):  # noqa: D401
         text = json.dumps({"answer": "A"})
-        return SimpleNamespace(output=[SimpleNamespace(content=[SimpleNamespace(text=text)])])
+        usage = SimpleNamespace(input_tokens=1000, output_tokens=500)
+        return SimpleNamespace(
+            output=[SimpleNamespace(content=[SimpleNamespace(text=text)])],
+            usage=usage,
+        )
 
 
 class DummyClient:
@@ -24,18 +28,29 @@ def patch_openai(monkeypatch):
     monkeypatch.setattr(
         "quiz_automation.chatgpt_client.settings.openai_api_key", "test-key"
     )
+    monkeypatch.setattr(
+        "quiz_automation.chatgpt_client.settings.openai_input_cost", 0.002
+    )
+    monkeypatch.setattr(
+        "quiz_automation.chatgpt_client.settings.openai_output_cost", 0.004
+    )
 
 
 def test_chatgpt_client_parsing():
     client = ChatGPTClient()
-    assert client.ask("question") == "A"
+    answer, usage, cost = client.ask("question")
+    assert answer == "A"
+    assert usage == {"input_tokens": 1000, "output_tokens": 500}
+    assert cost == pytest.approx(0.004)
 
 
 def test_chatgpt_client_malformed_response(monkeypatch):
     class BadResponses:
         def create(self, **_: str):  # noqa: D401
+            usage = SimpleNamespace(input_tokens=0, output_tokens=0)
             return SimpleNamespace(
-                output=[SimpleNamespace(content=[SimpleNamespace(text="not json")])]
+                output=[SimpleNamespace(content=[SimpleNamespace(text="not json")])],
+                usage=usage,
             )
 
     class BadClient:
@@ -45,7 +60,10 @@ def test_chatgpt_client_malformed_response(monkeypatch):
         "quiz_automation.chatgpt_client.OpenAI", lambda api_key: BadClient()
     )
     client = ChatGPTClient()
-    assert client.ask("question") == "Error: malformed response"
+    answer, usage, cost = client.ask("question")
+    assert answer == "Error: malformed response"
+    assert usage == {"input_tokens": 0, "output_tokens": 0}
+    assert cost == 0.0
 
 
 def test_chatgpt_client_retry(monkeypatch):
@@ -58,8 +76,10 @@ def test_chatgpt_client_retry(monkeypatch):
             if self.calls == 1:
                 raise RuntimeError("boom")
             text = json.dumps({"answer": "A"})
+            usage = SimpleNamespace(input_tokens=1000, output_tokens=500)
             return SimpleNamespace(
-                output=[SimpleNamespace(content=[SimpleNamespace(text=text)])]
+                output=[SimpleNamespace(content=[SimpleNamespace(text=text)])],
+                usage=usage,
             )
 
     flaky = FlakyResponses()
@@ -81,7 +101,10 @@ def test_chatgpt_client_retry(monkeypatch):
     )
 
     client = ChatGPTClient()
-    assert client.ask("question") == "A"
+    answer, usage, cost = client.ask("question")
+    assert answer == "A"
+    assert usage == {"input_tokens": 1000, "output_tokens": 500}
+    assert cost == pytest.approx(0.004)
     assert flaky.calls == 2
     assert sleeps == [1.0]
 
@@ -92,3 +115,4 @@ def test_chatgpt_client_requires_api_key(monkeypatch):
     )
     with pytest.raises(ValueError, match="API key is required"):
         ChatGPTClient()
+

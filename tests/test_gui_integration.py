@@ -11,9 +11,9 @@ def test_on_question_flow(monkeypatch):
         def __init__(self):
             pass
 
-        def ask(self, question: str) -> str:
+        def ask(self, question: str):
             calls['question'] = question
-            return 'B'
+            return 'B', {'input_tokens': 5, 'output_tokens': 7}, 0.012
 
     def dummy_click(letter, region, offsets_map=None, num_options=None):
         calls['click'] = (letter, region)
@@ -23,8 +23,17 @@ def test_on_question_flow(monkeypatch):
         def __init__(self, path):
             calls['path'] = str(path)
 
-        def log(self, ts, question, answer, x, y):
-            calls['log'] = (ts, question, answer, x, y)
+        def log(self, ts, question, answer, x, y, input_tokens, output_tokens, cost):
+            calls['log'] = (
+                ts,
+                question,
+                answer,
+                x,
+                y,
+                input_tokens,
+                output_tokens,
+                cost,
+            )
 
         def close(self):
             calls['closed'] = True
@@ -96,6 +105,9 @@ def test_on_question_flow(monkeypatch):
         'B',
         10,
         20,
+        5,
+        7,
+        0.012,
     )
 
     gui.shutdown()

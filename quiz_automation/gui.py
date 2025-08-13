@@ -4,17 +4,32 @@ from __future__ import annotations
 
 import queue
 import tkinter as tk
+from datetime import datetime
+from pathlib import Path
 from typing import Optional
 
-
+from .chatgpt_client import ChatGPTClient
+from .config import get_settings
+from .logger import QuizLogger
 from .watcher import Watcher
 from .region_selector import Region, select_region
+
+try:  # pragma: no cover - fallback when pyautogui not available
+    from .clicker import click_answer
+except Exception:  # pragma: no cover - environment may lack GUI deps
+    def click_answer(*args, **kwargs):  # type: ignore
+        return 0, 0
 
 
 class QuizGUI:
     """Minimal GUI with Start and Stop controls."""
 
     def __init__(self) -> None:
+        self.settings = get_settings()
+        self.client = ChatGPTClient()
+        self.logger = QuizLogger(Path("events.db"))
+        self.click = click_answer
+
         self.root = tk.Tk()
         self.root.title("Quiz Automation")
         self.status_var = tk.StringVar(value="Idle")
@@ -51,12 +66,21 @@ class QuizGUI:
             self.status_var.set("Stopped")
 
     def on_question(self, text: str) -> None:
-        answer = self.client.ask(text)
+        answer, usage, cost = self.client.ask(text)
         if self.region is None:  # pragma: no cover - defensive
             return
         x, y = self.click(answer, self.region.as_tuple())
         ts = datetime.now().isoformat()
-        self.logger.log(ts, text, answer, x, y)
+        self.logger.log(
+            ts,
+            text,
+            answer,
+            x,
+            y,
+            usage["input_tokens"],
+            usage["output_tokens"],
+            cost,
+        )
         self.event_queue.put(f"{text} -> {answer}")
 
     def process_events(self) -> None:
