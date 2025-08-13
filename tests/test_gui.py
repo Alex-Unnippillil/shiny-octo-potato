@@ -82,6 +82,7 @@ def test_gui_start_stop(monkeypatch):
         "quiz_automation.chatgpt_client.settings.openai_api_key", "test-key"
     )
 
+
     gui = QuizGUI()
     gui.start()
     gui.stop()
