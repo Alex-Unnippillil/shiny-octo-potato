@@ -11,16 +11,18 @@ from openai import OpenAI
 from .config import Settings, get_settings
 
 
+
 settings = get_settings()
 
 
 class ChatGPTClient:
 
-        self.settings = settings or globals()["settings"]
-        if not self.settings.openai_api_key:
-            raise ValueError("API key is required")
-        self.client = client or OpenAI(api_key=self.settings.openai_api_key)
 
+        settings = settings or globals()["settings"]
+        if not settings.openai_api_key:
+            raise ValueError("API key is required")
+        self.client = client or OpenAI(api_key=settings.openai_api_key)
+        self.settings = settings
 
         prompt = f"Answer the quiz question with a single letter in JSON: {question}"
         backoff = 1.0
