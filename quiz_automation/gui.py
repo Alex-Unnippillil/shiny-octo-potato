@@ -5,10 +5,15 @@ from __future__ import annotations
 import queue
 import tkinter as tk
 from typing import Optional
-
+from pathlib import Path
+from datetime import datetime
 
 from .watcher import Watcher
 from .region_selector import Region, select_region
+from .chatgpt_client import ChatGPTClient
+from .clicker import click_answer
+from .config import get_settings
+from .logger import QuizLogger
 
 
 class QuizGUI:
@@ -21,6 +26,13 @@ class QuizGUI:
         self.event_queue: "queue.Queue[str]" = queue.Queue()
         self.watcher: Optional[Watcher] = None
         self.region: Optional[Region] = None
+        self.settings = get_settings()
+        try:
+            self.client = ChatGPTClient()
+        except ValueError:
+            self.client = None  # pragma: no cover - missing API key handled gracefully
+        self.click = click_answer
+        self.logger = QuizLogger(Path("quiz.db"))
 
 
         start_btn = tk.Button(self.root, text="Start", command=self.start)
@@ -37,7 +49,10 @@ class QuizGUI:
             if self.region is None:
                 self.region = select_region()
             self.watcher = Watcher(
-                self.region.as_tuple(), self.on_question, self.settings.poll_interval
+                self.region.as_tuple(),
+                self.on_question,
+                self.settings.poll_interval,
+                save_dir=self.settings.screenshot_dir,
             )
             self.watcher.start()
             self.status_var.set("Running")
@@ -51,6 +66,8 @@ class QuizGUI:
             self.status_var.set("Stopped")
 
     def on_question(self, text: str) -> None:
+        if self.client is None:  # pragma: no cover - defensive
+            return
         answer = self.client.ask(text)
         if self.region is None:  # pragma: no cover - defensive
             return

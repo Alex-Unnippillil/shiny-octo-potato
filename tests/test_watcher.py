@@ -81,3 +81,32 @@ def test_run_survives_capture_and_ocr_errors(mocker):
 
     on_question.assert_called_once_with("q1")
     assert len(errors) == 2
+
+
+def test_run_saves_images(tmp_path, mocker):
+    from PIL import Image
+
+    img = Image.new("RGB", (1, 1))
+
+    def ocr(_):
+        watcher.stop_flag.set()
+        return "q1"
+
+    on_question = mocker.Mock()
+
+    watcher = Watcher(
+        (0, 0, 1, 1),
+        on_question,
+        poll_interval=0.01,
+        capture=lambda _: img,
+        ocr=ocr,
+        save_dir=tmp_path,
+    )
+
+    watcher.start()
+    watcher.join(timeout=1)
+
+    assert on_question.called
+    files = list(tmp_path.iterdir())
+    assert len(files) == 1
+    assert files[0].suffix == ".png"

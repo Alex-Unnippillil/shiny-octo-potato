@@ -11,11 +11,17 @@ from openai import OpenAI
 from .config import get_settings
 
 
+settings = get_settings()
+
+
 class ChatGPTClient:
     """Client for querying ChatGPT models."""
 
     def __init__(self) -> None:
-
+        if not settings.openai_api_key:
+            raise ValueError("API key is required")
+        self.settings = settings
+        self.client = OpenAI(api_key=self.settings.openai_api_key)
 
     def ask(self, question: str) -> str:
         """Send question to model and return parsed answer letter."""
