@@ -71,10 +71,18 @@ def test_gui_start_stop(monkeypatch):
         def close(self):
             pass
 
+    class DummyClient:
+        def __init__(self):
+            pass
+
+        def ask(self, question: str):
+            return "A", SimpleNamespace(input_tokens=0, output_tokens=0), 0.0
+
     monkeypatch.setattr("quiz_automation.gui.tk", dummy_tk)
     monkeypatch.setattr("quiz_automation.gui.Watcher", DummyWatcher)
     monkeypatch.setattr("quiz_automation.gui.select_region", dummy_select_region)
     monkeypatch.setattr("quiz_automation.gui.QuizLogger", DummyLogger)
+    monkeypatch.setattr("quiz_automation.gui.ChatGPTClient", DummyClient)
 
     gui = QuizGUI()
     gui.start()
