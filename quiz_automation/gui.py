@@ -6,14 +6,15 @@ import queue
 from datetime import datetime
 from pathlib import Path
 import tkinter as tk
-from typing import Callable, Optional
+
 
 from .chatgpt_client import ChatGPTClient
 from .clicker import click_answer
 from .config import get_settings
 from .logger import QuizLogger
-from .watcher import Watcher
+
 from .region_selector import Region, select_region
+from .watcher import Watcher
 
 
 class QuizGUI:
@@ -67,6 +68,8 @@ class QuizGUI:
             self.status_var.set("Stopped")
 
     def on_question(self, text: str) -> None:
+        if self.client is None:
+            self.client = ChatGPTClient()
         answer = self.client.ask(text)
         if self.region is None:  # pragma: no cover - defensive
             return
