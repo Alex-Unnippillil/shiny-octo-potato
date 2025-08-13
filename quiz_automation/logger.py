@@ -19,16 +19,45 @@ class QuizLogger:
                 question TEXT,
                 answer TEXT,
                 x INT,
-                y INT
+                y INT,
+                input_tokens INT,
+                output_tokens INT,
+                cost REAL
             )
             """
         )
+        # Migration for databases created before token tracking existed
+        cols = {row[1] for row in self.conn.execute("PRAGMA table_info(events)")}
+        if "input_tokens" not in cols:
+            self.conn.execute(
+                "ALTER TABLE events ADD COLUMN input_tokens INT DEFAULT 0"
+            )
+        if "output_tokens" not in cols:
+            self.conn.execute(
+                "ALTER TABLE events ADD COLUMN output_tokens INT DEFAULT 0"
+            )
+        if "cost" not in cols:
+            self.conn.execute("ALTER TABLE events ADD COLUMN cost REAL DEFAULT 0")
         self.conn.commit()
 
-    def log(self, ts: str, question: str, answer: str, x: int, y: int) -> None:
+    def log(
+        self,
+        ts: str,
+        question: str,
+        answer: str,
+        x: int,
+        y: int,
+        input_tokens: int,
+        output_tokens: int,
+        cost: float,
+    ) -> None:
         self.conn.execute(
-            "INSERT INTO events (ts, question, answer, x, y) VALUES (?, ?, ?, ?, ?)",
-            (ts, question, answer, x, y),
+            """
+            INSERT INTO events (
+                ts, question, answer, x, y, input_tokens, output_tokens, cost
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (ts, question, answer, x, y, input_tokens, output_tokens, cost),
         )
         self.conn.commit()
 
