@@ -19,16 +19,33 @@ class QuizLogger:
                 question TEXT,
                 answer TEXT,
                 x INT,
-                y INT
+                y INT,
+                input_tokens INT,
+                output_tokens INT,
+                cost REAL
             )
             """
         )
         self.conn.commit()
 
-    def log(self, ts: str, question: str, answer: str, x: int, y: int) -> None:
+    def log(
+        self,
+        ts: str,
+        question: str,
+        answer: str,
+        x: int,
+        y: int,
+        input_tokens: int,
+        output_tokens: int,
+        cost: float,
+    ) -> None:
         self.conn.execute(
-            "INSERT INTO events (ts, question, answer, x, y) VALUES (?, ?, ?, ?, ?)",
-            (ts, question, answer, x, y),
+            """
+            INSERT INTO events (
+                ts, question, answer, x, y, input_tokens, output_tokens, cost
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (ts, question, answer, x, y, input_tokens, output_tokens, cost),
         )
         self.conn.commit()
 
