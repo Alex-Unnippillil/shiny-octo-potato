@@ -8,17 +8,52 @@ import time
 
 from openai import OpenAI
 
-from .config import get_settings
+from .config import Settings, get_settings
+
+
+# Module-level settings so tests can monkeypatch values before class instantiation.
+settings = get_settings()
 
 
 class ChatGPTClient:
-    """Client for querying ChatGPT models."""
+    """Client for querying ChatGPT models.
 
-    def __init__(self) -> None:
+    This lightweight wrapper around the OpenAI client is primarily used by the
+    quiz automation scripts. The constructor allows dependency injection of
+    both the OpenAI client and runtime settings which simplifies testing.
+    """
 
+    def __init__(self, client: OpenAI | None = None, settings: Settings | None = None) -> None:
+        """Initialize the client.
+
+        Parameters
+        ----------
+        client:
+            Optional preconfigured :class:`OpenAI` instance.  When omitted a new
+            client is created using the provided API key.
+        settings:
+            Optional settings object.  Defaults to the module level
+            :data:`settings` which is populated from environment variables.
+
+        Raises
+        ------
+        ValueError
+            If ``settings.openai_api_key`` is falsy.
+        """
+
+        settings = settings or globals()["settings"]
+        if not getattr(settings, "openai_api_key", None):
+            raise ValueError("API key is required")
+
+        self.settings = settings
+        self.client = client or OpenAI(api_key=settings.openai_api_key)
 
     def ask(self, question: str) -> str:
-        """Send question to model and return parsed answer letter."""
+        """Send question to model and return parsed answer letter.
+
+        The request is retried up to three times with exponential backoff. If
+        all attempts fail, an error string is returned instead of raising.
+        """
         prompt = f"Answer the quiz question with a single letter in JSON: {question}"
         backoff = 1.0
         for attempt in range(3):

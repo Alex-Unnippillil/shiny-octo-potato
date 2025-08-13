@@ -4,11 +4,16 @@ from __future__ import annotations
 
 import queue
 import tkinter as tk
+from datetime import datetime
+from pathlib import Path
 from typing import Optional
 
-
-from .watcher import Watcher
+from .chatgpt_client import ChatGPTClient
+from .clicker import click_answer
+from .config import get_settings
+from .logger import QuizLogger
 from .region_selector import Region, select_region
+from .watcher import Watcher
 
 
 class QuizGUI:
@@ -21,6 +26,12 @@ class QuizGUI:
         self.event_queue: "queue.Queue[str]" = queue.Queue()
         self.watcher: Optional[Watcher] = None
         self.region: Optional[Region] = None
+
+        # Dependency instances that can be monkeypatched in tests
+        self.settings = get_settings()
+        self.client: Optional[ChatGPTClient] = None
+        self.logger = QuizLogger(Path("quiz.db"))
+        self.click = click_answer
 
 
         start_btn = tk.Button(self.root, text="Start", command=self.start)
@@ -51,6 +62,8 @@ class QuizGUI:
             self.status_var.set("Stopped")
 
     def on_question(self, text: str) -> None:
+        if self.client is None:
+            self.client = ChatGPTClient()
         answer = self.client.ask(text)
         if self.region is None:  # pragma: no cover - defensive
             return
