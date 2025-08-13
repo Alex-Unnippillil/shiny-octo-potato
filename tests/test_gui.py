@@ -4,7 +4,15 @@ from quiz_automation.gui import QuizGUI
 from quiz_automation.region_selector import Region
 
 
+def _ensure_api_key(monkeypatch) -> None:
+    """Ensure ChatGPTClient has an API key for instantiation."""
+    monkeypatch.setattr(
+        "quiz_automation.chatgpt_client.settings.openai_api_key", "test-key"
+    )
+
+
 def test_gui_start_stop(monkeypatch):
+    _ensure_api_key(monkeypatch)
     started = {}
 
     class DummyWatcher:
