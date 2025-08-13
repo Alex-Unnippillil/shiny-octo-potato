@@ -7,6 +7,7 @@ import os
 from dotenv import load_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings
+from pathlib import Path
 
 
 class Settings(BaseSettings):
@@ -16,6 +17,7 @@ class Settings(BaseSettings):
     openai_model: str = Field("gpt-4o-mini-high", env="OPENAI_MODEL")
     openai_temperature: float = Field(0.0, env="OPENAI_TEMPERATURE")
     poll_interval: float = Field(0.5, env="POLL_INTERVAL")
+    screenshot_dir: Path | None = Field(None, env="SCREENSHOT_DIR")
 
 
 
