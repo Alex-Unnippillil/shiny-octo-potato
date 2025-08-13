@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+
 from pathlib import Path
 from threading import Event, Thread
 from typing import Any, Callable, Tuple
@@ -39,6 +40,7 @@ class Watcher(Thread):
         capture: Callable[[Tuple[int, int, int, int]], Any] | None = None,
         ocr: Callable[[Any], str] | None = None,
         on_error: Callable[[Exception], None] | None = None,
+        screenshot_dir: str | None = None,
     ) -> None:
         super().__init__(daemon=True)
         self.region = region
@@ -48,6 +50,7 @@ class Watcher(Thread):
         self.capture = capture or _capture
         self.ocr = ocr or _ocr
         self.on_error = on_error
+        self.screenshot_dir = Path(screenshot_dir) if screenshot_dir else None
         self.stop_flag = Event()
         self._last_text = ""
 
@@ -76,13 +79,7 @@ class Watcher(Thread):
                 continue
             if self.is_new_question(text):
                 self._last_text = text
-                if self.screenshot_dir is not None:
-                    try:
-                        self.screenshot_dir.mkdir(parents=True, exist_ok=True)
-                        ts = int(time.time())
-                        img.save(self.screenshot_dir / f"{ts}.png")
-                    except Exception as exc:  # pragma: no cover - logging behaviour
-                        logging.exception("Saving screenshot failed")
+
                         if self.on_error:
                             self.on_error(exc)
                 self.on_question(text)

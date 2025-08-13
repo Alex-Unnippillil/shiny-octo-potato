@@ -6,12 +6,13 @@ def test_config_defaults(monkeypatch):
     monkeypatch.delenv("OPENAI_MODEL", raising=False)
     monkeypatch.delenv("OPENAI_TEMPERATURE", raising=False)
     monkeypatch.delenv("POLL_INTERVAL", raising=False)
-    monkeypatch.delenv("SCREENSHOT_DIR", raising=False)
+
     settings = get_settings()
     assert settings.poll_interval == 0.5
     assert settings.openai_model == "gpt-4o-mini-high"
     assert settings.openai_temperature == 0.0
     assert settings.screenshot_dir is None
+
 
 
 def test_env_vars(monkeypatch):
