@@ -3,18 +3,13 @@
 from __future__ import annotations
 
 import json
-
 import time
 
 from openai import OpenAI
 
 from .config import Settings, get_settings
 
-
 # Module-level settings so tests can monkeypatch values before class instantiation.
-settings = get_settings()
-
-
 settings = get_settings()
 
 
@@ -27,8 +22,11 @@ class ChatGPTClient:
     """
 
     def __init__(self, client: OpenAI | None = None, settings: Settings | None = None) -> None:
-        """Initialize the client.
-
+        """Initialize the client."""
+        self.settings = settings or globals()["settings"]
+        if not self.settings.openai_api_key:
+            raise ValueError("API key is required")
+        self.client = client or OpenAI(api_key=self.settings.openai_api_key)
 
     def ask(self, question: str) -> str:
         """Send question to model and return parsed answer letter.
@@ -50,7 +48,7 @@ class ChatGPTClient:
                     return data.get("answer", "")
                 except (KeyError, IndexError, json.JSONDecodeError):
                     return "Error: malformed response"
-            except Exception:  # pragma: no cover - depends on API failures
+            except Exception:
                 if attempt == 2:
                     return "Error: API request failed"
                 time.sleep(backoff)
