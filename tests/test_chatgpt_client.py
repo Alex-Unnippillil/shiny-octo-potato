@@ -27,7 +27,7 @@ def patch_openai(monkeypatch):
 
 
 def test_chatgpt_client_parsing():
-    client = ChatGPTClient()
+    client = ChatGPTClient(cache={})
     assert client.ask("question") == "A"
 
 
@@ -44,7 +44,7 @@ def test_chatgpt_client_malformed_response(monkeypatch):
     monkeypatch.setattr(
         "quiz_automation.chatgpt_client.OpenAI", lambda api_key: BadClient()
     )
-    client = ChatGPTClient()
+    client = ChatGPTClient(cache={})
     assert client.ask("question") == "Error: malformed response"
 
 
@@ -80,7 +80,7 @@ def test_chatgpt_client_retry(monkeypatch):
         "quiz_automation.chatgpt_client.time.sleep", fake_sleep
     )
 
-    client = ChatGPTClient()
+    client = ChatGPTClient(cache={})
     assert client.ask("question") == "A"
     assert flaky.calls == 2
     assert sleeps == [1.0]
@@ -91,4 +91,29 @@ def test_chatgpt_client_requires_api_key(monkeypatch):
         "quiz_automation.chatgpt_client.settings.openai_api_key", ""
     )
     with pytest.raises(ValueError, match="API key is required"):
-        ChatGPTClient()
+        ChatGPTClient(cache={})
+
+
+def test_chatgpt_client_uses_cache(monkeypatch):
+    calls = {"count": 0}
+
+    class CountingResponses:
+        def create(self, **_: str):  # noqa: D401
+            calls["count"] += 1
+            text = json.dumps({"answer": "A"})
+            return SimpleNamespace(
+                output=[SimpleNamespace(content=[SimpleNamespace(text=text)])]
+            )
+
+    class CountingClient:
+        responses = CountingResponses()
+
+    monkeypatch.setattr(
+        "quiz_automation.chatgpt_client.OpenAI", lambda api_key: CountingClient()
+    )
+
+    client = ChatGPTClient(cache={})
+    question = "What is caching?"
+    assert client.ask(question) == "A"
+    assert client.ask(question) == "A"
+    assert calls["count"] == 1
