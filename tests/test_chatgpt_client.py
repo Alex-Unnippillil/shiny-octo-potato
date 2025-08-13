@@ -24,6 +24,7 @@ def patch_openai(monkeypatch):
     monkeypatch.setattr(
         "quiz_automation.chatgpt_client.settings.openai_api_key", "test-key"
     )
+    monkeypatch.setattr("quiz_automation.chatgpt_client.CACHE", {})
 
 
 def test_chatgpt_client_parsing():
@@ -88,7 +89,35 @@ def test_chatgpt_client_retry(monkeypatch):
 
 def test_chatgpt_client_requires_api_key(monkeypatch):
     monkeypatch.setattr(
-        "quiz_automation.chatgpt_client.settings.openai_api_key", ""
+        "quiz_automation.chatgpt_client.settings.openai_api_key", "",
     )
     with pytest.raises(ValueError, match="API key is required"):
         ChatGPTClient()
+
+
+def test_chatgpt_client_uses_cache(monkeypatch):
+    class CountingResponses:
+        def __init__(self):
+            self.calls = 0
+
+        def create(self, **_: str):  # noqa: D401
+            self.calls += 1
+            text = json.dumps({"answer": "A"})
+            return SimpleNamespace(
+                output=[SimpleNamespace(content=[SimpleNamespace(text=text)])]
+            )
+
+    counting = CountingResponses()
+
+    class CountingClient:
+        responses = counting
+
+    monkeypatch.setattr(
+        "quiz_automation.chatgpt_client.OpenAI", lambda api_key: CountingClient()
+    )
+
+    client = ChatGPTClient()
+    assert client.ask("question") == "A"
+    assert client.ask("question") == "A"
+    assert counting.calls == 1
+
