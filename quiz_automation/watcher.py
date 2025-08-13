@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
+from pathlib import Path
 from threading import Event, Thread
 from typing import Any, Callable, Tuple
 
@@ -33,6 +35,7 @@ class Watcher(Thread):
         region: Tuple[int, int, int, int],
         on_question: Callable[[str], None],
         poll_interval: float = 0.5,
+        screenshot_dir: str | None = None,
         capture: Callable[[Tuple[int, int, int, int]], Any] | None = None,
         ocr: Callable[[Any], str] | None = None,
         on_error: Callable[[Exception], None] | None = None,
@@ -41,6 +44,7 @@ class Watcher(Thread):
         self.region = region
         self.on_question = on_question
         self.poll_interval = poll_interval
+        self.screenshot_dir = screenshot_dir
         self.capture = capture or _capture
         self.ocr = ocr or _ocr
         self.on_error = on_error
@@ -71,6 +75,10 @@ class Watcher(Thread):
                 self.stop_flag.wait(self.poll_interval)
                 continue
             if self.is_new_question(text):
+                if self.screenshot_dir:
+                    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+                    Path(self.screenshot_dir).mkdir(parents=True, exist_ok=True)
+                    img.save(Path(self.screenshot_dir) / f"{timestamp}.png")
                 self._last_text = text
                 self.on_question(text)
             self.stop_flag.wait(self.poll_interval)

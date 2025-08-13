@@ -28,7 +28,7 @@ class QuizGUI:
         click: Callable[[str, tuple[int, int, int, int]], tuple[int, int]] | None = None,
     ) -> None:
         self.settings = get_settings()
-        self.client = client or ChatGPTClient()
+        self.client = client
         self.logger = logger or QuizLogger(Path("events.db"))
         self.click = click or click_answer
 
@@ -54,7 +54,10 @@ class QuizGUI:
         if self.region is None:
             self.region = select_region()
         self.watcher = Watcher(
-            self.region.as_tuple(), self.on_question, self.settings.poll_interval
+            self.region.as_tuple(),
+            self.on_question,
+            poll_interval=self.settings.poll_interval,
+            screenshot_dir=self.settings.screenshot_dir,
         )
         self.watcher.start()
         self.status_var.set("Running")
