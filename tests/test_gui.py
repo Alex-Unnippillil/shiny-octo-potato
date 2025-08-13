@@ -75,6 +75,12 @@ def test_gui_start_stop(monkeypatch):
     monkeypatch.setattr("quiz_automation.gui.Watcher", DummyWatcher)
     monkeypatch.setattr("quiz_automation.gui.select_region", dummy_select_region)
     monkeypatch.setattr("quiz_automation.gui.QuizLogger", DummyLogger)
+    monkeypatch.setattr(
+        "quiz_automation.chatgpt_client.OpenAI", lambda api_key: SimpleNamespace()
+    )
+    monkeypatch.setattr(
+        "quiz_automation.chatgpt_client.settings.openai_api_key", "test-key"
+    )
 
 
     gui = QuizGUI()
