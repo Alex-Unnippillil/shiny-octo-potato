@@ -3,15 +3,16 @@
 from __future__ import annotations
 
 import queue
-import tkinter as tk
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+import tkinter as tk
+
 
 from .chatgpt_client import ChatGPTClient
 from .clicker import click_answer
 from .config import get_settings
 from .logger import QuizLogger
+
 from .region_selector import Region, select_region
 from .watcher import Watcher
 
@@ -19,20 +20,24 @@ from .watcher import Watcher
 class QuizGUI:
     """Minimal GUI with Start and Stop controls."""
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        client: ChatGPTClient | None = None,
+        logger: QuizLogger | None = None,
+        click: Callable[[str, tuple[int, int, int, int]], tuple[int, int]] | None = None,
+    ) -> None:
+        self.settings = get_settings()
+        self.client = client or ChatGPTClient()
+        self.logger = logger or QuizLogger(Path("events.db"))
+        self.click = click or click_answer
+
         self.root = tk.Tk()
         self.root.title("Quiz Automation")
         self.status_var = tk.StringVar(value="Idle")
         self.event_queue: "queue.Queue[str]" = queue.Queue()
         self.watcher: Optional[Watcher] = None
         self.region: Optional[Region] = None
-
-        # Dependency instances that can be monkeypatched in tests
-        self.settings = get_settings()
-        self.client: Optional[ChatGPTClient] = None
-        self.logger = QuizLogger(Path("quiz.db"))
-        self.click = click_answer
-
 
         start_btn = tk.Button(self.root, text="Start", command=self.start)
         start_btn.pack()
@@ -44,14 +49,15 @@ class QuizGUI:
 
     def start(self) -> None:
         """Start the watcher thread."""
-        if self.watcher is None:
-            if self.region is None:
-                self.region = select_region()
-            self.watcher = Watcher(
-                self.region.as_tuple(), self.on_question, self.settings.poll_interval
-            )
-            self.watcher.start()
-            self.status_var.set("Running")
+        if self.watcher and self.watcher.is_alive():
+            return
+        if self.region is None:
+            self.region = select_region()
+        self.watcher = Watcher(
+            self.region.as_tuple(), self.on_question, self.settings.poll_interval
+        )
+        self.watcher.start()
+        self.status_var.set("Running")
 
     def stop(self) -> None:
         """Stop the watcher thread."""

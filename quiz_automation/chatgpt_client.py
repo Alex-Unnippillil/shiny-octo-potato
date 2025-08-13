@@ -15,6 +15,9 @@ from .config import Settings, get_settings
 settings = get_settings()
 
 
+settings = get_settings()
+
+
 class ChatGPTClient:
     """Client for querying ChatGPT models.
 
@@ -26,27 +29,6 @@ class ChatGPTClient:
     def __init__(self, client: OpenAI | None = None, settings: Settings | None = None) -> None:
         """Initialize the client.
 
-        Parameters
-        ----------
-        client:
-            Optional preconfigured :class:`OpenAI` instance.  When omitted a new
-            client is created using the provided API key.
-        settings:
-            Optional settings object.  Defaults to the module level
-            :data:`settings` which is populated from environment variables.
-
-        Raises
-        ------
-        ValueError
-            If ``settings.openai_api_key`` is falsy.
-        """
-
-        settings = settings or globals()["settings"]
-        if not getattr(settings, "openai_api_key", None):
-            raise ValueError("API key is required")
-
-        self.settings = settings
-        self.client = client or OpenAI(api_key=settings.openai_api_key)
 
     def ask(self, question: str) -> str:
         """Send question to model and return parsed answer letter.
