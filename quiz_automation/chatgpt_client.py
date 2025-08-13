@@ -12,9 +12,7 @@ from .config import Settings, get_settings
 
 
 # Module-level settings so tests can monkeypatch values before class instantiation.
-settings = get_settings()
-
-
+# Only a single instance is created to avoid redundant initialization.
 settings = get_settings()
 
 
@@ -27,8 +25,28 @@ class ChatGPTClient:
     """
 
     def __init__(self, client: OpenAI | None = None, settings: Settings | None = None) -> None:
-        """Initialize the client.
+        """Initialize the client with optional dependencies.
 
+        Parameters
+        ----------
+        client:
+            Optional pre-configured :class:`OpenAI` instance. Supplying this
+            allows dependency injection during testing.
+        settings:
+            Optional :class:`Settings` object. Defaults to the module-level
+            ``settings`` instance. The ``ask`` method uses these settings and
+            retries failed API requests with exponential backoff.
+
+        Raises
+        ------
+        ValueError
+            If ``openai_api_key`` is missing from the provided settings.
+        """
+        settings = settings or globals()["settings"]
+        if not settings.openai_api_key:
+            raise ValueError("API key is required")
+        self.client = client or OpenAI(api_key=settings.openai_api_key)
+        self.settings = settings
 
     def ask(self, question: str) -> str:
         """Send question to model and return parsed answer letter.
