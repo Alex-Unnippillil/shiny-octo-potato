@@ -22,13 +22,17 @@ class Settings(BaseSettings):
 
 
 def get_settings() -> Settings:
-    """Return runtime configuration loaded from environment variables."""
+    """Return runtime configuration loaded from environment variables.
+
+    Includes optional screenshot archiving when ``SCREENSHOT_DIR`` is set.
+    """
     load_dotenv()
+    screenshot_dir = os.getenv("SCREENSHOT_DIR")
     return Settings(
         openai_api_key=os.getenv("OPENAI_API_KEY", ""),
         openai_model=os.getenv("OPENAI_MODEL", "gpt-4o-mini-high"),
         openai_temperature=float(os.getenv("OPENAI_TEMPERATURE", 0.0)),
         poll_interval=float(os.getenv("POLL_INTERVAL", 0.5)),
-
+        screenshot_dir=Path(screenshot_dir) if screenshot_dir else None,
     )
 
