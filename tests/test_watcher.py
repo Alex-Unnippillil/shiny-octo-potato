@@ -1,23 +1,31 @@
+"""Tests for the :mod:`quiz_automation.watcher` module."""
+
+from __future__ import annotations
+
 from threading import Event
-from PIL import Image
+
 from quiz_automation.watcher import Watcher
 
 
-def test_is_new_question():
-    def on_question(text: str) -> None:
+def test_is_new_question() -> None:
+    """``is_new_question`` returns ``True`` only for unseen text."""
+
+    def on_question(_: str) -> None:  # pragma: no cover - helper callback
         pass
 
     watcher = Watcher((0, 0, 1, 1), on_question)
     assert watcher.is_new_question("q1")
-    watcher._last_text = "q1"
+    watcher._last_text = "q1"  # simulate previous question
     assert not watcher.is_new_question("q1")
 
 
-def test_run_triggers_on_question(mocker):
-    capture = mocker.Mock(return_value=None)
-    texts = ["q1", "q1"]
+def test_run_triggers_on_question(mocker) -> None:
+    """Watcher calls ``on_question`` when OCR detects new text."""
 
-    def ocr(_):
+    capture = mocker.Mock(return_value=Image.new("RGB", (1, 1)))
+    texts = ["q1", "q1"]  # second value keeps thread alive once more
+
+    def ocr(_: Image.Image) -> str:
         if texts:
             return texts.pop(0)
         watcher.stop_flag.set()
@@ -33,24 +41,28 @@ def test_run_triggers_on_question(mocker):
         capture=capture,
         ocr=ocr_mock,
     )
+
     watcher.start()
     watcher.join(timeout=1)
+
     assert not watcher.is_alive()
     on_question.assert_called_once_with("q1")
 
 
-def test_run_survives_capture_and_ocr_errors(mocker):
+def test_run_survives_capture_and_ocr_errors(mocker) -> None:
+    """Errors from capture or OCR are reported but do not stop the thread."""
+
     capture_event = Event()
     ocr_event = Event()
     errors: list[Exception] = []
 
-    def capture(_):
+    def capture(_: tuple[int, int, int, int]) -> Image.Image:
         if not capture_event.is_set():
             capture_event.set()
             raise RuntimeError("capture fail")
-        return None
+        return Image.new("RGB", (1, 1))
 
-    def ocr(_):
+    def ocr(_: Image.Image) -> str:
         if not ocr_event.is_set():
             ocr_event.set()
             raise RuntimeError("ocr fail")
@@ -83,14 +95,6 @@ def test_run_survives_capture_and_ocr_errors(mocker):
     assert len(errors) == 2
 
 
-def test_run_saves_screenshot(tmp_path, mocker):
-    capture = mocker.Mock(return_value=Image.new("RGB", (1, 1)))
-    texts = ["q1"]
-
-    def ocr(_):
-        watcher.stop_flag.set()
-        return texts.pop(0)
-
     on_question = mocker.Mock()
 
     watcher = Watcher(
@@ -101,11 +105,17 @@ def test_run_saves_screenshot(tmp_path, mocker):
         ocr=ocr,
         screenshot_dir=tmp_path,
     )
+
     watcher.start()
     watcher.join(timeout=1)
+
     assert not watcher.is_alive()
     on_question.assert_called_once_with("q1")
     images = list(tmp_path.iterdir())
     assert len(images) == 1
     assert images[0].suffix == ".png"
+
+    files = list(tmp_path.glob("*.png"))
+    assert len(files) == 1
+    assert files[0].is_file()
 

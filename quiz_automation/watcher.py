@@ -41,8 +41,22 @@ class Watcher(Thread):
         ocr: Callable[[Any], str] | None = None,
         on_error: Callable[[Exception], None] | None = None,
     ) -> None:
+        """Initialise the watcher thread.
+
+        Args:
+            region: Screen region to capture as ``(left, top, width, height)``.
+            on_question: Callback invoked with new question text.
+            poll_interval: Time in seconds between captures.
+            screenshot_dir: Optional directory to save screenshots of new
+                questions.
+            capture: Function used to capture the screen region.
+            ocr: Function used to extract text from an image.
+            on_error: Callback invoked when ``capture`` or ``ocr`` raises an
+                exception.
+        """
+
         super().__init__(daemon=True)
-        self.region = region
+        self.region: Tuple[int, int, int, int] = region
         self.on_question = on_question
         self.poll_interval = poll_interval
         self.capture = capture or _capture
@@ -53,10 +67,11 @@ class Watcher(Thread):
         self._last_text = ""
 
     def is_new_question(self, text: str) -> bool:
-        """Check whether text differs from last captured question."""
+        """Check whether text differs from the previously captured question."""
         return text != "" and text != self._last_text
 
-    def run(self) -> None:  # pragma: no cover - exercised via tests
+
+      
         while not self.stop_flag.is_set():
             try:
                 img = self.capture(self.region)
@@ -80,10 +95,8 @@ class Watcher(Thread):
                 self._last_text = text
                 if self.screenshot_dir:
                     try:
-                        ts = int(time.time() * 1000)
-                        img.save(self.screenshot_dir / f"{ts}.png")
-                    except Exception as exc:  # pragma: no cover - logging behaviour
-                        logging.exception("Failed to save screenshot")
+
+                      
                         if self.on_error:
                             self.on_error(exc)
                 self.on_question(text)
