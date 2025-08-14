@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-
 from pathlib import Path
 from threading import Event, Thread
 from typing import Any, Callable, Tuple
@@ -11,7 +10,6 @@ from typing import Any, Callable, Tuple
 from mss import mss
 from PIL import Image
 import pytesseract
-import time
 
 
 def _capture(region: Tuple[int, int, int, int]) -> Image.Image:
@@ -40,17 +38,15 @@ class Watcher(Thread):
         capture: Callable[[Tuple[int, int, int, int]], Any] | None = None,
         ocr: Callable[[Any], str] | None = None,
         on_error: Callable[[Exception], None] | None = None,
-        screenshot_dir: str | None = None,
     ) -> None:
         super().__init__(daemon=True)
         self.region = region
         self.on_question = on_question
         self.poll_interval = poll_interval
-        self.screenshot_dir = screenshot_dir
+        self.screenshot_dir = Path(screenshot_dir) if screenshot_dir else None
         self.capture = capture or _capture
         self.ocr = ocr or _ocr
         self.on_error = on_error
-        self.screenshot_dir = Path(screenshot_dir) if screenshot_dir else None
         self.stop_flag = Event()
         self._last_text = ""
 
@@ -77,10 +73,9 @@ class Watcher(Thread):
                     self.on_error(exc)
                 self.stop_flag.wait(self.poll_interval)
                 continue
+
             if self.is_new_question(text):
                 self._last_text = text
-
-                        if self.on_error:
-                            self.on_error(exc)
                 self.on_question(text)
+
             self.stop_flag.wait(self.poll_interval)
