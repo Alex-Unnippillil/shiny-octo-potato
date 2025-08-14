@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import logging
-import time
+
 from pathlib import Path
 from threading import Event, Thread
 from typing import Any, Callable, Tuple
+
+import time
 
 from mss import mss
 from PIL import Image
@@ -42,27 +44,14 @@ class Watcher(Thread):
         ocr: Callable[[Any], str] | None = None,
         on_error: Callable[[Exception], None] | None = None,
     ) -> None:
-        """Initialize the watcher.
 
-        Parameters
-        ----------
-        region:
-            Capture region as ``(left, top, width, height)``.
-        on_question:
-            Callback invoked when a new question is detected.
-        poll_interval:
-            Delay between capture attempts.
-        screenshot_dir:
-            Optional directory where screenshots of new questions are saved.
-        capture, ocr, on_error:
-            Optional dependency injection hooks for testing.
         """
 
         super().__init__(daemon=True)
-        self.region = region
+        self.region: Tuple[int, int, int, int] = region
         self.on_question = on_question
         self.poll_interval = poll_interval
-        self.screenshot_dir = Path(screenshot_dir) if screenshot_dir else None
+
         self.capture = capture or _capture
         self.ocr = ocr or _ocr
         self.on_error = on_error
@@ -70,12 +59,6 @@ class Watcher(Thread):
         self._last_text = ""
 
     def is_new_question(self, text: str) -> bool:
-        """Return ``True`` if ``text`` differs from the last question."""
-
-        return text != "" and text != self._last_text
-
-    def run(self) -> None:  # pragma: no cover - thread behaviour
-        """Main loop of the watcher thread."""
 
         while not self.stop_flag.is_set():
             try:
@@ -98,14 +81,7 @@ class Watcher(Thread):
 
             if self.is_new_question(text):
                 self._last_text = text
-                if self.screenshot_dir:
-                    try:
-                        self.screenshot_dir.mkdir(parents=True, exist_ok=True)
-                        img.save(self.screenshot_dir / f"{int(time.time())}.png")
-                    except Exception as exc:  # pragma: no cover - logging behaviour
-                        logging.exception("Saving screenshot failed")
-                        if self.on_error:
-                            self.on_error(exc)
+
                 self.on_question(text)
 
             self.stop_flag.wait(self.poll_interval)
