@@ -40,13 +40,23 @@ class Watcher(Thread):
         capture: Callable[[Tuple[int, int, int, int]], Any] | None = None,
         ocr: Callable[[Any], str] | None = None,
         on_error: Callable[[Exception], None] | None = None,
-        screenshot_dir: str | None = None,
     ) -> None:
+        """Initialize the watcher thread.
+
+        Args:
+            region: Screen coordinates ``(left, top, width, height)`` to capture.
+            on_question: Callback executed when a new question is detected.
+            poll_interval: Delay between screen polls in seconds.
+            screenshot_dir: Optional directory to store screenshot images.
+            capture: Screenshot capture callable.
+            ocr: OCR callable.
+            on_error: Optional callback invoked when errors occur.
+        """
+
         super().__init__(daemon=True)
         self.region = region
         self.on_question = on_question
         self.poll_interval = poll_interval
-        self.screenshot_dir = screenshot_dir
         self.capture = capture or _capture
         self.ocr = ocr or _ocr
         self.on_error = on_error
@@ -59,6 +69,8 @@ class Watcher(Thread):
         return text != "" and text != self._last_text
 
     def run(self) -> None:
+        """Poll the screen region and emit OCR text when it changes."""
+
         while not self.stop_flag.is_set():
             try:
                 img = self.capture(self.region)
@@ -77,10 +89,11 @@ class Watcher(Thread):
                     self.on_error(exc)
                 self.stop_flag.wait(self.poll_interval)
                 continue
+
             if self.is_new_question(text):
                 self._last_text = text
-
-                        if self.on_error:
-                            self.on_error(exc)
+                if self.screenshot_dir:
+                    img.save(self.screenshot_dir / f"{int(time.time())}.png")
                 self.on_question(text)
+
             self.stop_flag.wait(self.poll_interval)
