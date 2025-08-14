@@ -94,3 +94,4 @@ def test_run_survives_capture_and_ocr_errors(mocker) -> None:
     assert len(errors) == 2
 
 
+
