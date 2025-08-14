@@ -1,11 +1,9 @@
 from threading import Event
-from PIL import Image
 
-from PIL import Image
 from quiz_automation.watcher import Watcher
 
 
-def test_is_new_question():
+def test_is_new_question() -> None:
     def on_question(text: str) -> None:
         pass
 
@@ -15,7 +13,7 @@ def test_is_new_question():
     assert not watcher.is_new_question("q1")
 
 
-def test_run_triggers_on_question(mocker):
+def test_run_triggers_on_question(mocker) -> None:
     capture = mocker.Mock(return_value=None)
     texts = ["q1", "q1"]
 
@@ -41,7 +39,7 @@ def test_run_triggers_on_question(mocker):
     on_question.assert_called_once_with("q1")
 
 
-def test_run_survives_capture_and_ocr_errors(mocker):
+def test_run_survives_capture_and_ocr_errors(mocker) -> None:
     capture_event = Event()
     ocr_event = Event()
     errors: list[Exception] = []
@@ -83,17 +81,4 @@ def test_run_survives_capture_and_ocr_errors(mocker):
 
     on_question.assert_called_once_with("q1")
     assert len(errors) == 2
-
-
-
-
-    watcher = Watcher(
-        (0, 0, 1, 1),
-        on_question,
-        poll_interval=0.01,
-
-    watcher.start()
-    watcher.join(timeout=1)
-    assert not watcher.is_alive()
-    on_question.assert_called_once_with("q1")
 
