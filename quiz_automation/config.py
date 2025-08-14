@@ -18,13 +18,15 @@ class Settings(BaseSettings):
     openai_temperature: float = Field(0.0, env="OPENAI_TEMPERATURE")
     poll_interval: float = Field(0.5, env="POLL_INTERVAL")
     screenshot_dir: Path | None = Field(None, env="SCREENSHOT_DIR")
+    openai_input_cost: float = Field(0.0, env="OPENAI_INPUT_COST")
+    openai_output_cost: float = Field(0.0, env="OPENAI_OUTPUT_COST")
 
 
 
 def get_settings() -> Settings:
     """Return runtime configuration loaded from environment variables.
 
-    Includes optional screenshot archiving when ``SCREENSHOT_DIR`` is set.
+
     """
     load_dotenv()
     screenshot_dir = os.getenv("SCREENSHOT_DIR")
@@ -33,6 +35,6 @@ def get_settings() -> Settings:
         openai_model=os.getenv("OPENAI_MODEL", "gpt-4o-mini-high"),
         openai_temperature=float(os.getenv("OPENAI_TEMPERATURE", 0.0)),
         poll_interval=float(os.getenv("POLL_INTERVAL", 0.5)),
-        screenshot_dir=Path(screenshot_dir) if screenshot_dir else None,
+
     )
 
