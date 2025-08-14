@@ -23,17 +23,24 @@ from openai import OpenAI
 from .config import Settings, get_settings
 from .utils import hash_text
 
-# Module level configuration and cache -------------------------------------
 
-settings: Settings = get_settings()
-"""Runtime configuration loaded from the environment."""
-
-CACHE: Dict[str, str] = {}
-"""Simple in-memory cache keyed by the hash of the question text."""
 
 
 class ChatGPTClient:
-    """Thin wrapper around :class:`~openai.OpenAI` with caching and retries."""
+    """Simple wrapper around OpenAI's API.
+
+    Parameters
+    ----------
+    client:
+        Optional preconfigured :class:`~openai.OpenAI` client.  When ``None`` a
+        new client is created using the provided settings.
+    cache:
+        Optional dictionary used to cache answers keyed by the hash of the
+        question text.  When ``None`` the module level ``CACHE`` is used.
+    settings:
+        Optional :class:`Settings` instance.  Defaults to module level
+        ``settings``.
+    """
 
     def __init__(
         self,
@@ -41,27 +48,28 @@ class ChatGPTClient:
         cache: Dict[str, str] | None = None,
         settings: Settings | None = None,
     ) -> None:
-        """Initialise a new client instance.
+        self.settings = settings or globals()["settings"]
+        if not self.settings.openai_api_key:
+            raise ValueError("API key is required")
+        self.client = client or OpenAI(api_key=self.settings.openai_api_key)
+        self.cache = cache if cache is not None else CACHE
 
-        Parameters
-        ----------
-        client:
-            Optional pre‑configured :class:`~openai.OpenAI` client.  When omitted
-            a new instance is created using the API key from ``settings``.
-        cache:
-            Optional dictionary used for caching.  Falls back to the module
-            level :data:`CACHE`.
-        settings:
-            Optional settings override.  If not provided the module level
-            :data:`settings` object is used.
+    def ask(self, question: str) -> Tuple[str, object | None, float]:
+        """Ask ChatGPT a quiz question.
 
-        Raises
-        ------
-        ValueError
-            If the OpenAI API key is not provided.
+        Returns
+        -------
+        tuple
+            ``(answer, usage, cost)`` where ``answer`` is the extracted answer
+            from the response, ``usage`` is the token usage information or
+            ``None`` if unavailable, and ``cost`` is the estimated cost in USD.
+            In case of failure ``answer`` contains an error message and both
+            ``usage`` and ``cost`` are ``None`` and ``0.0`` respectively.
         """
 
-
+        qid = hash_text(question)
+        if qid in self.cache:
+            return self.cache[qid], None, 0.0
 
         prompt = f"Answer the quiz question with a single letter in JSON: {question}"
 
@@ -86,3 +94,4 @@ class ChatGPTClient:
 
         return "Error: API request failed", None, 0.0
 
+      

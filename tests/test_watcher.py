@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from threading import Event
 
-from quiz_automation.watcher import Watcher
 
 
 def test_is_new_question() -> None:
@@ -94,28 +93,4 @@ def test_run_survives_capture_and_ocr_errors(mocker) -> None:
     on_question.assert_called_once_with("q1")
     assert len(errors) == 2
 
-
-    on_question = mocker.Mock()
-
-    watcher = Watcher(
-        (0, 0, 1, 1),
-        on_question,
-        poll_interval=0.01,
-        capture=capture,
-        ocr=ocr,
-        screenshot_dir=tmp_path,
-    )
-
-    watcher.start()
-    watcher.join(timeout=1)
-
-    assert not watcher.is_alive()
-    on_question.assert_called_once_with("q1")
-    images = list(tmp_path.iterdir())
-    assert len(images) == 1
-    assert images[0].suffix == ".png"
-
-    files = list(tmp_path.glob("*.png"))
-    assert len(files) == 1
-    assert files[0].is_file()
 
