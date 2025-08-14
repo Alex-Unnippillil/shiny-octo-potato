@@ -3,9 +3,6 @@
 from __future__ import annotations
 
 from threading import Event
-from pathlib import Path
-
-from PIL import Image
 
 from quiz_automation.watcher import Watcher
 
@@ -98,19 +95,6 @@ def test_run_survives_capture_and_ocr_errors(mocker) -> None:
     assert len(errors) == 2
 
 
-def test_run_saves_screenshot(tmp_path: Path, mocker) -> None:
-    """Screenshots are written to ``screenshot_dir`` for new questions."""
-
-    img = Image.new("RGB", (1, 1))
-    capture = mocker.Mock(return_value=img)
-    texts = ["q1", "q1"]
-
-    def ocr(_: Image.Image) -> str:
-        if texts:
-            return texts.pop(0)
-        watcher.stop_flag.set()
-        return ""
-
     on_question = mocker.Mock()
 
     watcher = Watcher(
@@ -127,6 +111,9 @@ def test_run_saves_screenshot(tmp_path: Path, mocker) -> None:
 
     assert not watcher.is_alive()
     on_question.assert_called_once_with("q1")
+    images = list(tmp_path.iterdir())
+    assert len(images) == 1
+    assert images[0].suffix == ".png"
 
     files = list(tmp_path.glob("*.png"))
     assert len(files) == 1
