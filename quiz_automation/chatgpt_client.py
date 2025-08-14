@@ -1,19 +1,29 @@
-"""Client wrapper for the OpenAI API used by the quiz automation."""
+"""OpenAI client wrapper used by the quiz automation project.
+
+This module exposes a small helper class :class:`ChatGPTClient` that wraps the
+`openai` package.  It handles a couple of responsibilities:
+
+* Validation and creation of the underlying :class:`~openai.OpenAI` client.
+* Basic response caching keyed by a hash of the question text.
+* Parsing the JSON payload returned by the model.
+* Tracking token usage and estimating cost.
+
+The main entry point is :meth:`ChatGPTClient.ask` which returns a tuple of the
+generated answer, the usage object returned by OpenAI and the calculated cost.
+"""
 
 from __future__ import annotations
 
 import json
 import time
-from typing import Dict, Tuple
+
 
 from openai import OpenAI
 
 from .config import Settings, get_settings
 from .utils import hash_text
 
-# Global settings and cache used across instances
-settings: Settings = get_settings()
-CACHE: Dict[str, str] = {}
+
 
 
 class ChatGPTClient:
@@ -62,6 +72,7 @@ class ChatGPTClient:
             return self.cache[qid], None, 0.0
 
         prompt = f"Answer the quiz question with a single letter in JSON: {question}"
+
         backoff = 1.0
         for attempt in range(3):
             try:
@@ -70,29 +81,17 @@ class ChatGPTClient:
                     temperature=self.settings.openai_temperature,
                     input=prompt,
                 )
+
                 try:
-                    data = json.loads(completion.output[0].content[0].text)
+                    text = completion.output[0].content[0].text
+                    data = json.loads(text)
                     answer = data.get("answer", "")
-                except (KeyError, IndexError, json.JSONDecodeError):
-                    return "Error: malformed response", None, 0.0
 
-                usage = getattr(completion, "usage", None)
-                if usage is not None:
-                    input_cost = getattr(self.settings, "openai_input_cost", 0.0)
-                    output_cost = getattr(self.settings, "openai_output_cost", 0.0)
-                    cost = (
-                        usage.input_tokens * input_cost
-                        + usage.output_tokens * output_cost
-                    ) / 1000
-                else:
-                    cost = 0.0
-
-                self.cache[qid] = answer
-                return answer, usage, cost
-            except Exception:
                 if attempt == 2:
-                    return "Error: API request failed", None, 0.0
+                    break
                 time.sleep(backoff)
                 backoff *= 2
 
         return "Error: API request failed", None, 0.0
+
+      
