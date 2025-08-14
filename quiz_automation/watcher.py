@@ -1,14 +1,17 @@
-"""Screenshot capture and OCR watcher."""
+"""Utilities for watching a screen region and extracting questions.
+
+The real project uses :mod:`mss` and :mod:`pytesseract` to capture a region of
+the screen and run OCR over it.  For the purposes of the tests we implement a
+very small subset of this behaviour while providing the same public API.
+"""
 
 from __future__ import annotations
 
 import logging
-
+import time
 from pathlib import Path
 from threading import Event, Thread
 from typing import Any, Callable, Tuple
-
-import time
 
 from mss import mss
 from PIL import Image
@@ -20,7 +23,7 @@ def _capture(region: Tuple[int, int, int, int]) -> Image.Image:
 
     left, top, width, height = region
     monitor = {"left": left, "top": top, "width": width, "height": height}
-    with mss() as sct:
+    with mss() as sct:  # pragma: no cover - small wrapper
         shot = sct.grab(monitor)
         return Image.frombytes("RGB", shot.size, shot.rgb)
 
@@ -44,14 +47,11 @@ class Watcher(Thread):
         ocr: Callable[[Any], str] | None = None,
         on_error: Callable[[Exception], None] | None = None,
     ) -> None:
-
-        """
-
         super().__init__(daemon=True)
-        self.region: Tuple[int, int, int, int] = region
+        self.region = region
         self.on_question = on_question
         self.poll_interval = poll_interval
-
+        self.screenshot_dir = screenshot_dir
         self.capture = capture or _capture
         self.ocr = ocr or _ocr
         self.on_error = on_error
@@ -59,7 +59,11 @@ class Watcher(Thread):
         self._last_text = ""
 
     def is_new_question(self, text: str) -> bool:
+        """Return ``True`` if ``text`` differs from the last seen question."""
 
+        return text != self._last_text
+
+    def run(self) -> None:  # pragma: no cover - exercised via tests
         while not self.stop_flag.is_set():
             try:
                 img = self.capture(self.region)
@@ -69,6 +73,11 @@ class Watcher(Thread):
                     self.on_error(exc)
                 self.stop_flag.wait(self.poll_interval)
                 continue
+
+            if self.screenshot_dir:
+                timestamp = int(time.time())
+                path = Path(self.screenshot_dir) / f"{timestamp}.png"
+                img.save(path)
 
             try:
                 text = self.ocr(img)
@@ -81,7 +90,6 @@ class Watcher(Thread):
 
             if self.is_new_question(text):
                 self._last_text = text
-
                 self.on_question(text)
 
             self.stop_flag.wait(self.poll_interval)

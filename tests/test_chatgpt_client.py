@@ -27,7 +27,6 @@ def patch_openai(monkeypatch):
     monkeypatch.setattr(
         "quiz_automation.chatgpt_client.settings.openai_api_key", "test-key"
     )
-    monkeypatch.setattr("quiz_automation.chatgpt_client.CACHE", {})
 
 
 def test_chatgpt_client_parsing(monkeypatch):
@@ -38,11 +37,11 @@ def test_chatgpt_client_parsing(monkeypatch):
         "quiz_automation.chatgpt_client.settings.openai_output_cost", 2.0
     )
     client = ChatGPTClient()
-    answer, usage, cost = client.ask("question")
-    assert answer == "A"
-    assert usage.input_tokens == 10
-    assert usage.output_tokens == 20
-    assert cost == (10 * 1.0 + 20 * 2.0) / 1000
+    resp = client.ask("question")
+    assert resp.answer == "A"
+    assert resp.usage.input_tokens == 10
+    assert resp.usage.output_tokens == 20
+    assert resp.cost == (10 * 1.0 + 20 * 2.0) / 1000
 
 
 def test_chatgpt_client_malformed_response(monkeypatch):
@@ -60,10 +59,10 @@ def test_chatgpt_client_malformed_response(monkeypatch):
         "quiz_automation.chatgpt_client.OpenAI", lambda api_key: BadClient()
     )
     client = ChatGPTClient()
-    answer, usage, cost = client.ask("question")
-    assert answer == "Error: malformed response"
-    assert usage is None
-    assert cost == 0.0
+    resp = client.ask("question")
+    assert resp.answer == "Error: malformed response"
+    assert resp.usage is None
+    assert resp.cost == 0.0
 
 
 def test_chatgpt_client_retry(monkeypatch):
@@ -100,16 +99,17 @@ def test_chatgpt_client_retry(monkeypatch):
     )
 
     client = ChatGPTClient()
-    answer, usage, cost = client.ask("question")
-    assert answer == "A"
-    assert cost == 0.0
+    resp = client.ask("question")
+    assert resp.answer == "A"
+    assert resp.cost == 0.0
     assert flaky.calls == 2
     assert sleeps == [1.0]
 
 
 def test_chatgpt_client_requires_api_key(monkeypatch):
     monkeypatch.setattr(
-        "quiz_automation.chatgpt_client.settings.openai_api_key", "",
+        "quiz_automation.chatgpt_client.settings.openai_api_key",
+        "",
     )
     with pytest.raises(ValueError, match="API key is required"):
         ChatGPTClient()
@@ -124,7 +124,8 @@ def test_chatgpt_client_uses_cache(monkeypatch):
             self.calls += 1
             text = json.dumps({"answer": "A"})
             return SimpleNamespace(
-                output=[SimpleNamespace(content=[SimpleNamespace(text=text)])]
+                output=[SimpleNamespace(content=[SimpleNamespace(text=text)])],
+                usage=SimpleNamespace(input_tokens=0, output_tokens=0),
             )
 
     counting = CountingResponses()
@@ -137,6 +138,40 @@ def test_chatgpt_client_uses_cache(monkeypatch):
     )
 
     client = ChatGPTClient()
-
+    resp1 = client.ask("question")
+    resp2 = client.ask("question")
+    assert resp1.answer == resp2.answer == "A"
     assert counting.calls == 1
+
+
+def test_chatgpt_client_api_failure(monkeypatch):
+    class FailResponses:
+        def __init__(self):
+            self.calls = 0
+
+        def create(self, **_: str):  # noqa: D401
+            self.calls += 1
+            raise RuntimeError("boom")
+
+    failing = FailResponses()
+
+    class FailClient:
+        responses = failing
+
+    monkeypatch.setattr(
+        "quiz_automation.chatgpt_client.OpenAI", lambda api_key: FailClient()
+    )
+
+    sleeps = []
+    monkeypatch.setattr(
+        "quiz_automation.chatgpt_client.time.sleep", lambda s: sleeps.append(s)
+    )
+
+    client = ChatGPTClient()
+    resp = client.ask("question")
+    assert resp.answer == "Error: API request failed"
+    assert resp.usage is None
+    assert resp.cost == 0.0
+    assert failing.calls == 3
+    assert sleeps == [1.0, 2.0]
 
