@@ -26,19 +26,15 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     """Return runtime configuration loaded from environment variables.
 
-    Includes paths for screenshot archiving and cost configuration for
-    OpenAI usage.
+
     """
     load_dotenv()
+    screenshot_dir = os.getenv("SCREENSHOT_DIR")
     return Settings(
         openai_api_key=os.getenv("OPENAI_API_KEY", ""),
         openai_model=os.getenv("OPENAI_MODEL", "gpt-4o-mini-high"),
         openai_temperature=float(os.getenv("OPENAI_TEMPERATURE", 0.0)),
         poll_interval=float(os.getenv("POLL_INTERVAL", 0.5)),
 
-      
-      
-        openai_input_cost=float(os.getenv("OPENAI_INPUT_COST", 0.0)),
-        openai_output_cost=float(os.getenv("OPENAI_OUTPUT_COST", 0.0)),
     )
 
