@@ -1,5 +1,7 @@
 from unittest.mock import MagicMock, patch
 
+import pyautogui  # noqa: F401  # ensure stub is loaded
+
 from quiz_automation.region_selector import Region, select_region
 
 
