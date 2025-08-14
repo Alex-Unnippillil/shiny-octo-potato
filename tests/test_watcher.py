@@ -84,16 +84,3 @@ def test_run_survives_capture_and_ocr_errors(mocker):
     on_question.assert_called_once_with("q1")
     assert len(errors) == 2
 
-
-
-
-    watcher = Watcher(
-        (0, 0, 1, 1),
-        on_question,
-        poll_interval=0.01,
-
-    watcher.start()
-    watcher.join(timeout=1)
-    assert not watcher.is_alive()
-    on_question.assert_called_once_with("q1")
-
