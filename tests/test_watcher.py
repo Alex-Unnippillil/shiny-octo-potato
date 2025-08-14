@@ -5,11 +5,6 @@ from __future__ import annotations
 from threading import Event
 
 
-
-def test_is_new_question() -> None:
-    """``is_new_question`` returns ``True`` only for unseen text."""
-
-    def on_question(_: str) -> None:  # pragma: no cover - helper callback
         pass
 
     watcher = Watcher((0, 0, 1, 1), on_question)
@@ -18,11 +13,6 @@ def test_is_new_question() -> None:
     assert not watcher.is_new_question("q1")
 
 
-def test_run_triggers_on_question(mocker) -> None:
-    """Watcher calls ``on_question`` when OCR detects new text."""
-
-    capture = mocker.Mock(return_value=Image.new("RGB", (1, 1)))
-    texts = ["q1", "q1"]  # second value keeps thread alive once more
 
     def ocr(_: Image.Image) -> str:
         if texts:
@@ -32,11 +22,13 @@ def test_run_triggers_on_question(mocker) -> None:
 
     ocr_mock = mocker.Mock(side_effect=ocr)
     on_question = mocker.Mock()
+    mocker.patch("time.time", return_value=1234)
 
     watcher = Watcher(
         (0, 0, 1, 1),
         on_question,
         poll_interval=0.01,
+        screenshot_dir=tmp_path,
         capture=capture,
         ocr=ocr_mock,
     )
@@ -46,6 +38,7 @@ def test_run_triggers_on_question(mocker) -> None:
 
     assert not watcher.is_alive()
     on_question.assert_called_once_with("q1")
+    assert (tmp_path / "1234.png").exists()
 
 
 def test_run_survives_capture_and_ocr_errors(mocker) -> None:
@@ -92,6 +85,5 @@ def test_run_survives_capture_and_ocr_errors(mocker) -> None:
 
     on_question.assert_called_once_with("q1")
     assert len(errors) == 2
-
 
 

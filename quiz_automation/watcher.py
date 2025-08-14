@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+
 from pathlib import Path
 from threading import Event, Thread
 from typing import Any, Callable, Tuple
@@ -15,7 +16,8 @@ import pytesseract
 
 
 def _capture(region: Tuple[int, int, int, int]) -> Image.Image:
-    """Capture screenshot of the region using mss."""
+    """Capture a screenshot of ``region`` using :mod:`mss`."""
+
     left, top, width, height = region
     monitor = {"left": left, "top": top, "width": width, "height": height}
     with mss() as sct:
@@ -24,7 +26,8 @@ def _capture(region: Tuple[int, int, int, int]) -> Image.Image:
 
 
 def _ocr(img: Any) -> str:
-    """Run OCR on the image using pytesseract."""
+    """Run OCR on ``img`` using :mod:`pytesseract`."""
+
     return pytesseract.image_to_string(img).strip()
 
 
@@ -41,18 +44,7 @@ class Watcher(Thread):
         ocr: Callable[[Any], str] | None = None,
         on_error: Callable[[Exception], None] | None = None,
     ) -> None:
-        """Initialise the watcher thread.
 
-        Args:
-            region: Screen region to capture as ``(left, top, width, height)``.
-            on_question: Callback invoked with new question text.
-            poll_interval: Time in seconds between captures.
-            screenshot_dir: Optional directory to save screenshots of new
-                questions.
-            capture: Function used to capture the screen region.
-            ocr: Function used to extract text from an image.
-            on_error: Callback invoked when ``capture`` or ``ocr`` raises an
-                exception.
         """
 
         super().__init__(daemon=True)
@@ -67,11 +59,7 @@ class Watcher(Thread):
         self._last_text = ""
 
     def is_new_question(self, text: str) -> bool:
-        """Check whether text differs from the previously captured question."""
-        return text != "" and text != self._last_text
 
-
-      
         while not self.stop_flag.is_set():
             try:
                 img = self.capture(self.region)
@@ -94,7 +82,6 @@ class Watcher(Thread):
             if self.is_new_question(text):
                 self._last_text = text
 
-                
                 self.on_question(text)
 
             self.stop_flag.wait(self.poll_interval)
