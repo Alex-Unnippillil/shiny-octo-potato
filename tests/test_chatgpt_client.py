@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from quiz_automation.chatgpt_client import ChatGPTClient
+from quiz_automation.chatgpt_client import CACHE, ChatGPTClient
 
 
 class DummyResponses:
@@ -27,7 +27,7 @@ def patch_openai(monkeypatch):
     monkeypatch.setattr(
         "quiz_automation.chatgpt_client.settings.openai_api_key", "test-key"
     )
-    monkeypatch.setattr("quiz_automation.chatgpt_client.CACHE", {})
+    CACHE.clear()
 
 
 def test_chatgpt_client_parsing(monkeypatch):
@@ -137,7 +137,9 @@ def test_chatgpt_client_uses_cache(monkeypatch):
     )
 
     client = ChatGPTClient()
-    assert client.ask("question") == "A"
-    assert client.ask("question") == "A"
+    answer, *_ = client.ask("question")
+    assert answer == "A"
+    answer, *_ = client.ask("question")
+    assert answer == "A"
     assert counting.calls == 1
 

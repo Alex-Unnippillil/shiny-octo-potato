@@ -1,5 +1,6 @@
 from types import SimpleNamespace
 
+import quiz_automation.chatgpt_client as chatgpt_client
 from quiz_automation.gui import QuizGUI
 from quiz_automation.region_selector import Region
 
@@ -9,6 +10,7 @@ def _ensure_api_key(monkeypatch) -> None:
     monkeypatch.setattr(
         "quiz_automation.chatgpt_client.settings.openai_api_key", "test-key"
     )
+    chatgpt_client.CACHE.clear()
 
 
 def test_gui_start_stop(monkeypatch):
