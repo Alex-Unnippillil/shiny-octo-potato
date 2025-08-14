@@ -1,7 +1,6 @@
 from threading import Event
 from PIL import Image
 
-from PIL import Image
 from quiz_automation.watcher import Watcher
 
 
@@ -85,15 +84,24 @@ def test_run_survives_capture_and_ocr_errors(mocker):
     assert len(errors) == 2
 
 
+def test_run_optionally_saves_screenshot(tmp_path, mocker):
+    mock_capture = mocker.Mock(return_value=Image.new("RGB", (1, 1)))
 
+    def mock_ocr(_):
+        watcher.stop_flag.set()
+        return "q1"
+
+    on_question = mocker.Mock()
 
     watcher = Watcher(
         (0, 0, 1, 1),
         on_question,
         poll_interval=0.01,
-
+        screenshot_dir=tmp_path,
+        capture=mock_capture,
+        ocr=mock_ocr,
+    )
     watcher.start()
     watcher.join(timeout=1)
     assert not watcher.is_alive()
-    on_question.assert_called_once_with("q1")
-
+    assert len(list(tmp_path.iterdir())) == 1
