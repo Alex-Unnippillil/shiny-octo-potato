@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 import pytest
+import pyautogui  # noqa: F401  # ensure stub is loaded
 
 from quiz_automation.clicker import click_answer
 
