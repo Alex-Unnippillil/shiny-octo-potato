@@ -4,7 +4,13 @@ from __future__ import annotations
 
 from threading import Event
 
+from PIL import Image
 
+from quiz_automation.watcher import Watcher
+
+
+def test_is_new_question() -> None:
+    def on_question(_: str) -> None:
         pass
 
     watcher = Watcher((0, 0, 1, 1), on_question)
@@ -13,6 +19,11 @@ from threading import Event
     assert not watcher.is_new_question("q1")
 
 
+def test_run_saves_screenshot_and_calls_handler(tmp_path, mocker) -> None:
+    texts = ["q1"]
+
+    def capture(_: tuple[int, int, int, int]) -> Image.Image:
+        return Image.new("RGB", (1, 1))
 
     def ocr(_: Image.Image) -> str:
         if texts:
@@ -85,5 +96,4 @@ def test_run_survives_capture_and_ocr_errors(mocker) -> None:
 
     on_question.assert_called_once_with("q1")
     assert len(errors) == 2
-
 

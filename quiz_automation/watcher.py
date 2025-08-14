@@ -1,14 +1,12 @@
-"""Screenshot capture and OCR watcher."""
+"""Utilities for monitoring the screen for new quiz questions."""
 
 from __future__ import annotations
 
 import logging
-
+import time
 from pathlib import Path
 from threading import Event, Thread
 from typing import Any, Callable, Tuple
-
-import time
 
 from mss import mss
 from PIL import Image
@@ -44,22 +42,23 @@ class Watcher(Thread):
         ocr: Callable[[Any], str] | None = None,
         on_error: Callable[[Exception], None] | None = None,
     ) -> None:
-
-        """
-
         super().__init__(daemon=True)
-        self.region: Tuple[int, int, int, int] = region
+        self.region = region
         self.on_question = on_question
         self.poll_interval = poll_interval
-
         self.capture = capture or _capture
         self.ocr = ocr or _ocr
         self.on_error = on_error
+        self.screenshot_dir = screenshot_dir
         self.stop_flag = Event()
         self._last_text = ""
 
     def is_new_question(self, text: str) -> bool:
+        """Return ``True`` if ``text`` is a new question."""
 
+        return text != "" and text != self._last_text
+
+    def run(self) -> None:  # pragma: no cover - exercised via tests
         while not self.stop_flag.is_set():
             try:
                 img = self.capture(self.region)
@@ -81,7 +80,13 @@ class Watcher(Thread):
 
             if self.is_new_question(text):
                 self._last_text = text
-
+                if self.screenshot_dir:
+                    try:
+                        ts = int(time.time())
+                        path = Path(self.screenshot_dir) / f"{ts}.png"
+                        img.save(path)
+                    except Exception:  # pragma: no cover - ignore save errors
+                        pass
                 self.on_question(text)
 
             self.stop_flag.wait(self.poll_interval)

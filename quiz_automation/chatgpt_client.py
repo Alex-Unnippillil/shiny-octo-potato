@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import json
 import time
-
+from types import SimpleNamespace
 
 from openai import OpenAI
 
@@ -25,28 +25,6 @@ from .utils import hash_text
 
 settings = get_settings()
 
-
-    def __init__(
-        self,
-        client: OpenAI | None = None,
-        cache: Dict[str, str] | None = None,
-        settings: Settings | None = None,
-    ) -> None:
-        self.settings = settings or globals()["settings"]
-        if not self.settings.openai_api_key:
-            raise ValueError("API key is required")
-        self.client = client or OpenAI(api_key=self.settings.openai_api_key)
-
-
-        Returns
-        -------
-        tuple
-
-        """
-
-        qid = hash_text(question)
-        if qid in self.cache:
-            return self.cache[qid], None, 0.0
 
 class ChatGPTResponse:
     """Response returned by :class:`ChatGPTClient`."""
@@ -123,9 +101,10 @@ class ChatGPTClient:
                     return ChatGPTResponse(
                         "Error: malformed response", None, 0.0
                     )
+            except Exception:
+                time.sleep(backoff)
+                backoff *= 2
 
-
-
-        return "Error: API request failed", None, 0.0
+        return ChatGPTResponse("Error: API request failed", None, 0.0)
 
       
