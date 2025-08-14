@@ -23,23 +23,16 @@ from openai import OpenAI
 from .config import Settings, get_settings
 from .utils import hash_text
 
+settings = get_settings()
+CACHE: Dict[str, str] = {}
 
 
 
-class ChatGPTClient:
-    """Simple wrapper around OpenAI's API.
 
     Parameters
     ----------
     client:
-        Optional preconfigured :class:`~openai.OpenAI` client.  When ``None`` a
-        new client is created using the provided settings.
-    cache:
-        Optional dictionary used to cache answers keyed by the hash of the
-        question text.  When ``None`` the module level ``CACHE`` is used.
-    settings:
-        Optional :class:`Settings` instance.  Defaults to module level
-        ``settings``.
+
     """
 
     def __init__(
@@ -52,19 +45,12 @@ class ChatGPTClient:
         if not self.settings.openai_api_key:
             raise ValueError("API key is required")
         self.client = client or OpenAI(api_key=self.settings.openai_api_key)
-        self.cache = cache if cache is not None else CACHE
 
-    def ask(self, question: str) -> Tuple[str, object | None, float]:
-        """Ask ChatGPT a quiz question.
 
         Returns
         -------
         tuple
-            ``(answer, usage, cost)`` where ``answer`` is the extracted answer
-            from the response, ``usage`` is the token usage information or
-            ``None`` if unavailable, and ``cost`` is the estimated cost in USD.
-            In case of failure ``answer`` contains an error message and both
-            ``usage`` and ``cost`` are ``None`` and ``0.0`` respectively.
+
         """
 
         qid = hash_text(question)
