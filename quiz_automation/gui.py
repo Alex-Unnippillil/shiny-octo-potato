@@ -6,13 +6,12 @@ import queue
 from datetime import datetime
 from pathlib import Path
 import tkinter as tk
-
+from typing import Callable, Optional
 
 from .chatgpt_client import ChatGPTClient
 from .clicker import click_answer
 from .config import get_settings
 from .logger import QuizLogger
-
 from .region_selector import Region, select_region
 from .watcher import Watcher
 
