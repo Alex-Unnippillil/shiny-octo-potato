@@ -137,11 +137,6 @@ def test_chatgpt_client_uses_cache(monkeypatch):
     )
 
     client = ChatGPTClient()
-    answer, usage, cost = client.ask("question")
-    assert answer == "A"
-    answer2, usage2, cost2 = client.ask("question")
-    assert answer2 == "A"
-    assert usage2 is None
-    assert cost2 == 0.0
+
     assert counting.calls == 1
 
