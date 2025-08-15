@@ -85,5 +85,3 @@ def test_run_survives_capture_and_ocr_errors(mocker) -> None:
 
     on_question.assert_called_once_with("q1")
     assert len(errors) == 2
-
-

@@ -1,9 +1,9 @@
-"""Screenshot capture and OCR watcher."""
+"""Background thread that captures a region of the screen and performs OCR."""
 
 from __future__ import annotations
 
 import logging
-
+import time
 from pathlib import Path
 from threading import Event, Thread
 from typing import Any, Callable, Tuple
@@ -16,7 +16,6 @@ import pytesseract
 
 
 def _capture(region: Tuple[int, int, int, int]) -> Image.Image:
-    """Capture a screenshot of ``region`` using :mod:`mss`."""
 
     left, top, width, height = region
     monitor = {"left": left, "top": top, "width": width, "height": height}
@@ -32,13 +31,14 @@ def _ocr(img: Any) -> str:
 
 
 class Watcher(Thread):
-    """Background thread that captures a region and performs OCR."""
+    """Thread that repeatedly captures a region and emits new questions."""
 
     def __init__(
         self,
         region: Tuple[int, int, int, int],
         on_question: Callable[[str], None],
         poll_interval: float = 0.5,
+        *,
         screenshot_dir: Path | None = None,
         capture: Callable[[Tuple[int, int, int, int]], Any] | None = None,
         ocr: Callable[[Any], str] | None = None,
