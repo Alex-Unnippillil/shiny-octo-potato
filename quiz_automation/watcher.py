@@ -55,10 +55,17 @@ class Watcher(Thread):
         self.capture = capture or _capture
         self.ocr = ocr or _ocr
         self.on_error = on_error
+        self.screenshot_dir = screenshot_dir
         self.stop_flag = Event()
         self._last_text = ""
 
     def is_new_question(self, text: str) -> bool:
+        """Return ``True`` if ``text`` differs from the last seen value."""
+
+        return text != self._last_text
+
+    def run(self) -> None:  # pragma: no cover - threaded logic
+        """Capture screenshots, OCR them and notify on new questions."""
 
         while not self.stop_flag.is_set():
             try:
@@ -69,6 +76,14 @@ class Watcher(Thread):
                     self.on_error(exc)
                 self.stop_flag.wait(self.poll_interval)
                 continue
+
+            if self.screenshot_dir:
+                try:
+                    self.screenshot_dir.mkdir(parents=True, exist_ok=True)
+                    ts = int(time.time())
+                    img.save(self.screenshot_dir / f"{ts}.png")
+                except Exception:  # pragma: no cover - best effort, log only
+                    logging.exception("Failed to save screenshot")
 
             try:
                 text = self.ocr(img)
@@ -81,8 +96,12 @@ class Watcher(Thread):
 
             if self.is_new_question(text):
                 self._last_text = text
-
-                self.on_question(text)
+                try:
+                    self.on_question(text)
+                except Exception as exc:  # pragma: no cover - defensive
+                    logging.exception("on_question callback failed")
+                    if self.on_error:
+                        self.on_error(exc)
 
             self.stop_flag.wait(self.poll_interval)
 
