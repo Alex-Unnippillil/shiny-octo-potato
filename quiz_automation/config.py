@@ -24,8 +24,12 @@ class Settings(BaseSettings):
 
 
 def get_settings() -> Settings:
-    """Return runtime configuration loaded from environment variables."""
+    """Return runtime configuration loaded from environment variables.
+
+
+    """
     load_dotenv()
+    screenshot_dir = os.getenv("SCREENSHOT_DIR")
     return Settings(
         openai_api_key=os.getenv("OPENAI_API_KEY", ""),
         openai_model=os.getenv("OPENAI_MODEL", "gpt-4o-mini-high"),
