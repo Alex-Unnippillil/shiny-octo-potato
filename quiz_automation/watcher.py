@@ -59,6 +59,7 @@ class Watcher(Thread):
 
     def is_new_question(self, text: str) -> bool:
 
+
         while not self.stop_flag.is_set():
             try:
                 img = self.capture(self.region)
