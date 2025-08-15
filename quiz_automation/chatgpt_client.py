@@ -24,14 +24,7 @@ from .config import Settings, get_settings
 from .utils import hash_text
 
 
-        if not self.settings.openai_api_key:
-            raise ValueError("API key is required")
-        self.client = OpenAI(api_key=self.settings.openai_api_key)
 
-
-        key = hash_text(question)
-        if key in CACHE:
-            return CACHE[key]
 
         prompt = f"Answer the quiz question with a single letter in JSON: {question}"
 
@@ -48,10 +41,3 @@ from .utils import hash_text
                     text = completion.output[0].content[0].text
                     data = json.loads(text)
                     answer = data.get("answer", "")
-
-                    input_tokens = getattr(usage, "input_tokens", 0)
-                    output_tokens = getattr(usage, "output_tokens", 0)
-                    cost = (
-                        input_tokens * self.settings.openai_input_cost
-                        + output_tokens * self.settings.openai_output_cost
-                    ) / 1000

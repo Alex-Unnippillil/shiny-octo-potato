@@ -1,9 +1,3 @@
-"""Tests for the :mod:`quiz_automation.watcher` module."""
-
-from __future__ import annotations
-
-from threading import Event
-
 
         pass
 
@@ -11,6 +5,7 @@ from threading import Event
     assert watcher.is_new_question("q1")
     watcher._last_text = "q1"  # simulate previous question
     assert not watcher.is_new_question("q1")
+
 
 
 
@@ -42,7 +37,6 @@ from threading import Event
 
 
 def test_run_survives_capture_and_ocr_errors(mocker) -> None:
-    """Errors from capture or OCR are reported but do not stop the thread."""
 
     capture_event = Event()
     ocr_event = Event()

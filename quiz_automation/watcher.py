@@ -1,9 +1,9 @@
-"""Background thread that captures a region of the screen and performs OCR."""
+
 
 from __future__ import annotations
 
 import logging
-import time
+
 from pathlib import Path
 from threading import Event, Thread
 from typing import Any, Callable, Tuple
@@ -25,7 +25,6 @@ def _capture(region: Tuple[int, int, int, int]) -> Image.Image:
 
 
 def _ocr(img: Any) -> str:
-    """Run OCR on ``img`` using :mod:`pytesseract`."""
 
     return pytesseract.image_to_string(img).strip()
 
