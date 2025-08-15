@@ -24,6 +24,7 @@ jobs:
           pip install -r requirements.txt
       - name: Run tests
         env:
+          # Provide a dummy key to ensure no real network calls are made
           OPENAI_API_KEY: dummy
         run: |
           xvfb-run --auto-servernum --server-args="-screen 0 1024x768x24" pytest -q
