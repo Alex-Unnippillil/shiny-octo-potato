@@ -12,6 +12,9 @@ def test_logger_inserts(tmp_path: Path):
     conn = sqlite3.connect(db_path)
     row = conn.execute("SELECT * FROM events").fetchone()
     assert row == ("ts", "question", "A", 1, 2, 3, 4, 0.5)
+    assert row[5] == 3
+    assert row[6] == 4
+    assert row[7] == pytest.approx(0.5)
 
 
 def test_logger_closes_connection(tmp_path: Path):

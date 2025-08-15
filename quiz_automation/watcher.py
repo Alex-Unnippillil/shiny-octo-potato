@@ -1,4 +1,4 @@
-"""Screenshot capture and OCR watcher."""
+
 
 from __future__ import annotations
 
@@ -16,7 +16,6 @@ import pytesseract
 
 
 def _capture(region: Tuple[int, int, int, int]) -> Image.Image:
-    """Capture a screenshot of ``region`` using :mod:`mss`."""
 
     left, top, width, height = region
     monitor = {"left": left, "top": top, "width": width, "height": height}
@@ -26,19 +25,19 @@ def _capture(region: Tuple[int, int, int, int]) -> Image.Image:
 
 
 def _ocr(img: Any) -> str:
-    """Run OCR on ``img`` using :mod:`pytesseract`."""
 
     return pytesseract.image_to_string(img).strip()
 
 
 class Watcher(Thread):
-    """Background thread that captures a region and performs OCR."""
+    """Thread that repeatedly captures a region and emits new questions."""
 
     def __init__(
         self,
         region: Tuple[int, int, int, int],
         on_question: Callable[[str], None],
         poll_interval: float = 0.5,
+        *,
         screenshot_dir: Path | None = None,
         capture: Callable[[Tuple[int, int, int, int]], Any] | None = None,
         ocr: Callable[[Any], str] | None = None,
@@ -59,6 +58,7 @@ class Watcher(Thread):
         self._last_text = ""
 
     def is_new_question(self, text: str) -> bool:
+
 
         while not self.stop_flag.is_set():
             try:
