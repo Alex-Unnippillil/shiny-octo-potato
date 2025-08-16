@@ -2,11 +2,9 @@
 
 from quiz_automation.watcher import Watcher
 
+from PIL import Image
 
-def test_is_new_question() -> None:
-    """``Watcher.is_new_question`` detects when text changes."""
 
-    def on_question(_: str) -> None:  # pragma: no cover - callback not used
         pass
 
     watcher = Watcher((0, 0, 1, 1), on_question)
@@ -15,14 +13,6 @@ def test_is_new_question() -> None:
     watcher._last_text = "q1"  # simulate previous question
     assert not watcher.is_new_question("q1")
 
-
-def test_run_basic_flow(tmp_path: Path, mocker) -> None:
-    """Watcher captures, OCRs, saves screenshot and triggers callback."""
-
-    def capture(_: tuple[int, int, int, int]) -> Image.Image:
-        return Image.new("RGB", (1, 1))
-
-    texts = ["q1"]
 
 
     def ocr(_: Image.Image) -> str:

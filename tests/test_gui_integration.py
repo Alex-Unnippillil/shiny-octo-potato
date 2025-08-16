@@ -2,6 +2,7 @@ from types import SimpleNamespace
 
 from quiz_automation.gui import QuizGUI
 from quiz_automation.region_selector import Region
+from quiz_automation.chatgpt_client import ChatGPTResponse
 
 
 def test_on_question_flow(monkeypatch):
@@ -14,7 +15,7 @@ def test_on_question_flow(monkeypatch):
         def ask(self, question: str):  # noqa: D401
             calls['question'] = question
             usage = SimpleNamespace(input_tokens=1, output_tokens=2)
-            return 'B', usage, 0.5
+            return ChatGPTResponse('B', usage, 0.5)
 
     def dummy_click(letter, region, offsets_map=None, num_options=None):
         calls['click'] = (letter, region)

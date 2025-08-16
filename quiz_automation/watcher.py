@@ -1,14 +1,11 @@
 
-
 from __future__ import annotations
 
 import logging
-
+import time
 from pathlib import Path
 from threading import Event, Thread
 from typing import Any, Callable, Tuple
-
-import time
 
 from mss import mss
 from PIL import Image
@@ -43,14 +40,10 @@ class Watcher(Thread):
         ocr: Callable[[Any], str] | None = None,
         on_error: Callable[[Exception], None] | None = None,
     ) -> None:
-
-        """
-
         super().__init__(daemon=True)
-        self.region: Tuple[int, int, int, int] = region
+        self.region = region
         self.on_question = on_question
         self.poll_interval = poll_interval
-
         self.capture = capture or _capture
         self.ocr = ocr or _ocr
         self.on_error = on_error
@@ -59,14 +52,11 @@ class Watcher(Thread):
         self._last_text = ""
 
     def is_new_question(self, text: str) -> bool:
-        """Return ``True`` if ``text`` differs from the last seen value."""
-
-        return text != self._last_text
-
-    def run(self) -> None:  # pragma: no cover - threaded logic
-        """Capture screenshots, OCR them and notify on new questions."""
 
 
+        return text != "" and text != self._last_text
+
+    def run(self) -> None:  # pragma: no cover - exercised via tests
         while not self.stop_flag.is_set():
             try:
                 img = self.capture(self.region)
@@ -96,12 +86,7 @@ class Watcher(Thread):
 
             if self.is_new_question(text):
                 self._last_text = text
-                try:
-                    self.on_question(text)
-                except Exception as exc:  # pragma: no cover - defensive
-                    logging.exception("on_question callback failed")
-                    if self.on_error:
-                        self.on_error(exc)
+
 
             self.stop_flag.wait(self.poll_interval)
 

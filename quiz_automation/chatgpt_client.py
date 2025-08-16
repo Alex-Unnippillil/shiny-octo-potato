@@ -16,12 +16,13 @@ from __future__ import annotations
 
 import json
 import time
-
+from types import SimpleNamespace
 
 from openai import OpenAI
 
 from .config import Settings, get_settings
 from .utils import hash_text
+
 
 
 
