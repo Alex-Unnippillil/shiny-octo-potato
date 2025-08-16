@@ -1,13 +1,4 @@
-"""Tests for the :mod:`quiz_automation.watcher` module."""
 
-from __future__ import annotations
-
-import time
-from threading import Event
-from pathlib import Path
-
-import pytest
-from PIL import Image
 
 from quiz_automation.watcher import Watcher
 
@@ -32,6 +23,7 @@ def test_run_basic_flow(tmp_path: Path, mocker) -> None:
         return Image.new("RGB", (1, 1))
 
     texts = ["q1"]
+
 
     def ocr(_: Image.Image) -> str:
         if texts:
@@ -61,7 +53,6 @@ def test_run_basic_flow(tmp_path: Path, mocker) -> None:
 
 
 def test_run_survives_capture_and_ocr_errors(mocker) -> None:
-    """Errors from capture or OCR are reported but do not stop the thread."""
 
     capture_event = Event()
     ocr_event = Event()
