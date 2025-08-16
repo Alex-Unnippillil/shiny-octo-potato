@@ -20,12 +20,18 @@ class Settings(BaseSettings):
     openai_output_cost: float = Field(0.0, env="OPENAI_OUTPUT_COST")
     poll_interval: float = Field(0.5, env="POLL_INTERVAL")
     screenshot_dir: Path | None = Field(None, env="SCREENSHOT_DIR")
+    openai_input_cost: float = Field(0.0, env="OPENAI_INPUT_COST")
+    openai_output_cost: float = Field(0.0, env="OPENAI_OUTPUT_COST")
 
 
 
 def get_settings() -> Settings:
-    """Return runtime configuration loaded from environment variables."""
+    """Return runtime configuration loaded from environment variables.
+
+
+    """
     load_dotenv()
+    screenshot = os.getenv("SCREENSHOT_DIR")
     return Settings(
         openai_api_key=os.getenv("OPENAI_API_KEY", ""),
         openai_model=os.getenv("OPENAI_MODEL", "gpt-4o-mini-high"),
@@ -34,5 +40,7 @@ def get_settings() -> Settings:
         openai_output_cost=float(os.getenv("OPENAI_OUTPUT_COST", 0.0)),
         poll_interval=float(os.getenv("POLL_INTERVAL", 0.5)),
 
+        openai_input_cost=float(os.getenv("OPENAI_INPUT_COST", 0.0)),
+        openai_output_cost=float(os.getenv("OPENAI_OUTPUT_COST", 0.0)),
     )
 

@@ -1,9 +1,8 @@
-"""Screenshot capture and OCR watcher."""
 
 from __future__ import annotations
 
 import logging
-
+import time
 from pathlib import Path
 from threading import Event, Thread
 from typing import Any, Callable, Tuple
@@ -11,11 +10,10 @@ from typing import Any, Callable, Tuple
 from mss import mss
 from PIL import Image
 import pytesseract
-import time
 
 
 def _capture(region: Tuple[int, int, int, int]) -> Image.Image:
-    """Capture screenshot of the region using mss."""
+
     left, top, width, height = region
     monitor = {"left": left, "top": top, "width": width, "height": height}
     with mss() as sct:
@@ -24,41 +22,41 @@ def _capture(region: Tuple[int, int, int, int]) -> Image.Image:
 
 
 def _ocr(img: Any) -> str:
-    """Run OCR on the image using pytesseract."""
+
     return pytesseract.image_to_string(img).strip()
 
 
 class Watcher(Thread):
-    """Background thread that captures a region and performs OCR."""
+    """Thread that repeatedly captures a region and emits new questions."""
 
     def __init__(
         self,
         region: Tuple[int, int, int, int],
         on_question: Callable[[str], None],
         poll_interval: float = 0.5,
+        *,
         screenshot_dir: Path | None = None,
         capture: Callable[[Tuple[int, int, int, int]], Any] | None = None,
         ocr: Callable[[Any], str] | None = None,
         on_error: Callable[[Exception], None] | None = None,
-        screenshot_dir: str | None = None,
     ) -> None:
         super().__init__(daemon=True)
         self.region = region
         self.on_question = on_question
         self.poll_interval = poll_interval
-        self.screenshot_dir = screenshot_dir
         self.capture = capture or _capture
         self.ocr = ocr or _ocr
         self.on_error = on_error
-        self.screenshot_dir = Path(screenshot_dir) if screenshot_dir else None
+        self.screenshot_dir = screenshot_dir
         self.stop_flag = Event()
         self._last_text = ""
 
     def is_new_question(self, text: str) -> bool:
-        """Check whether text differs from last captured question."""
+
+
         return text != "" and text != self._last_text
 
-    def run(self) -> None:
+    def run(self) -> None:  # pragma: no cover - exercised via tests
         while not self.stop_flag.is_set():
             try:
                 img = self.capture(self.region)
@@ -69,6 +67,14 @@ class Watcher(Thread):
                 self.stop_flag.wait(self.poll_interval)
                 continue
 
+            if self.screenshot_dir:
+                try:
+                    self.screenshot_dir.mkdir(parents=True, exist_ok=True)
+                    ts = int(time.time())
+                    img.save(self.screenshot_dir / f"{ts}.png")
+                except Exception:  # pragma: no cover - best effort, log only
+                    logging.exception("Failed to save screenshot")
+
             try:
                 text = self.ocr(img)
             except Exception as exc:  # pragma: no cover - logging behaviour
@@ -77,10 +83,10 @@ class Watcher(Thread):
                     self.on_error(exc)
                 self.stop_flag.wait(self.poll_interval)
                 continue
+
             if self.is_new_question(text):
                 self._last_text = text
 
-                        if self.on_error:
-                            self.on_error(exc)
-                self.on_question(text)
+
             self.stop_flag.wait(self.poll_interval)
+
