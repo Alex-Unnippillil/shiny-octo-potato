@@ -23,6 +23,8 @@ from openai import OpenAI
 from .config import Settings, get_settings
 from .utils import hash_text
 
+settings = get_settings()
+CACHE: dict[str, str] = {}
 
 
 

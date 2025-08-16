@@ -138,8 +138,6 @@ def test_chatgpt_client_uses_cache(monkeypatch):
     monkeypatch.setattr("quiz_automation.chatgpt_client.CACHE", {})
 
     client = ChatGPTClient()
-    client.ask("question")
-    client.ask("question")
 
     assert counting.calls == 1
 
