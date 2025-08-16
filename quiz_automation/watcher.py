@@ -1,4 +1,3 @@
-"""Utilities for monitoring the screen for new quiz questions."""
 
 from __future__ import annotations
 
@@ -14,7 +13,6 @@ import pytesseract
 
 
 def _capture(region: Tuple[int, int, int, int]) -> Image.Image:
-    """Capture a screenshot of ``region`` using :mod:`mss`."""
 
     left, top, width, height = region
     monitor = {"left": left, "top": top, "width": width, "height": height}
@@ -24,19 +22,19 @@ def _capture(region: Tuple[int, int, int, int]) -> Image.Image:
 
 
 def _ocr(img: Any) -> str:
-    """Run OCR on ``img`` using :mod:`pytesseract`."""
 
     return pytesseract.image_to_string(img).strip()
 
 
 class Watcher(Thread):
-    """Background thread that captures a region and performs OCR."""
+    """Thread that repeatedly captures a region and emits new questions."""
 
     def __init__(
         self,
         region: Tuple[int, int, int, int],
         on_question: Callable[[str], None],
         poll_interval: float = 0.5,
+        *,
         screenshot_dir: Path | None = None,
         capture: Callable[[Tuple[int, int, int, int]], Any] | None = None,
         ocr: Callable[[Any], str] | None = None,
@@ -54,7 +52,7 @@ class Watcher(Thread):
         self._last_text = ""
 
     def is_new_question(self, text: str) -> bool:
-        """Return ``True`` if ``text`` is a new question."""
+
 
         return text != "" and text != self._last_text
 
@@ -69,6 +67,14 @@ class Watcher(Thread):
                 self.stop_flag.wait(self.poll_interval)
                 continue
 
+            if self.screenshot_dir:
+                try:
+                    self.screenshot_dir.mkdir(parents=True, exist_ok=True)
+                    ts = int(time.time())
+                    img.save(self.screenshot_dir / f"{ts}.png")
+                except Exception:  # pragma: no cover - best effort, log only
+                    logging.exception("Failed to save screenshot")
+
             try:
                 text = self.ocr(img)
             except Exception as exc:  # pragma: no cover - logging behaviour
@@ -80,14 +86,7 @@ class Watcher(Thread):
 
             if self.is_new_question(text):
                 self._last_text = text
-                if self.screenshot_dir:
-                    try:
-                        ts = int(time.time())
-                        path = Path(self.screenshot_dir) / f"{ts}.png"
-                        img.save(path)
-                    except Exception:  # pragma: no cover - ignore save errors
-                        pass
-                self.on_question(text)
+
 
             self.stop_flag.wait(self.poll_interval)
 

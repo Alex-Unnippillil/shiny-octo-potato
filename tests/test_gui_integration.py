@@ -102,6 +102,10 @@ def test_on_question_flow(monkeypatch):
         2,
         0.5,
     )
+    # ensure token accounting and cost are preserved
+    assert calls['log'][5] == 1
+    assert calls['log'][6] == 2
+    assert calls['log'][7] == 0.5
 
     gui.shutdown()
     assert calls['closed'] is True
