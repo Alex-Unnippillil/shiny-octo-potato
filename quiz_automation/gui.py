@@ -37,11 +37,16 @@ class QuizGUI:
         self.event_queue: "queue.Queue[str]" = queue.Queue()
         self.watcher: Optional[Watcher] = None
         self.region: Optional[Region] = None
+        self._overlay: Optional[tk.Toplevel] = None
 
         start_btn = tk.Button(self.root, text="Start", command=self.start)
         start_btn.pack()
         stop_btn = tk.Button(self.root, text="Stop", command=self.stop)
         stop_btn.pack()
+        self.select_btn = tk.Button(
+            self.root, text="Select Region", command=self._select_region
+        )
+        self.select_btn.pack()
         tk.Label(self.root, textvariable=self.status_var).pack()
         self.root.after(100, self.process_events)
         self.root.protocol("WM_DELETE_WINDOW", self.shutdown)
@@ -52,6 +57,9 @@ class QuizGUI:
             return
         if self.region is None:
             self.region = select_region()
+        if self._overlay is not None:
+            self._overlay.destroy()
+            self._overlay = None
         self.watcher = Watcher(
             self.region.as_tuple(),
             self.on_question,
@@ -106,3 +114,24 @@ class QuizGUI:
         self.stop()
         self.logger.close()
         self.root.destroy()
+
+    # Internal helpers -------------------------------------------------
+
+    def _select_region(self) -> None:
+        """Invoke region selection and display an overlay preview."""
+        self.region = select_region()
+        if self._overlay is not None:
+            self._overlay.destroy()
+        if self.region is None:
+            return
+        left, top, width, height = self.region.as_tuple()
+        overlay = tk.Toplevel(self.root)
+        overlay.overrideredirect(True)
+        overlay.attributes("-topmost", True)
+        overlay.attributes("-alpha", 0.3)
+        overlay.geometry(f"{width}x{height}+{left}+{top}")
+        canvas = tk.Canvas(overlay, width=width, height=height)
+        canvas.pack(fill=tk.BOTH, expand=True)
+        canvas.create_rectangle(0, 0, width, height, fill="red", outline="")
+        overlay.lift()
+        self._overlay = overlay
