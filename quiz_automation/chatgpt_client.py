@@ -18,6 +18,8 @@ from __future__ import annotations
 import json
 import time
 from dataclasses import dataclass
+from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 from openai import OpenAI
@@ -55,7 +57,47 @@ class ChatGPTResponse:
 # Default runtime settings and response cache.  The cache maps the hash of the
 # question text to the corresponding :class:`ChatGPTResponse`.
 settings = get_settings()
+CACHE_FILE = Path("chatgpt_cache.json")
 CACHE: dict[str, ChatGPTResponse] = {}
+
+
+def _load_cache() -> None:
+    """Populate ``CACHE`` from ``CACHE_FILE`` if it exists."""
+    global CACHE
+    if not CACHE_FILE.exists():
+        CACHE = {}
+        return
+
+    try:
+        with CACHE_FILE.open("r", encoding="utf-8") as fh:
+            raw = json.load(fh)
+    except Exception:
+        CACHE = {}
+        return
+
+    CACHE = {}
+    for key, value in raw.items():
+        usage = value.get("usage")
+        if isinstance(usage, dict):
+            usage = SimpleNamespace(**usage)
+        CACHE[key] = ChatGPTResponse(value["answer"], usage, value["cost"])
+
+
+def _save_cache() -> None:
+    """Persist ``CACHE`` to ``CACHE_FILE``."""
+    data: dict[str, Any] = {}
+    for key, resp in CACHE.items():
+        usage = resp.usage
+        if usage is not None and not isinstance(usage, dict):
+            usage = getattr(usage, "__dict__", usage)
+        data[key] = {"answer": resp.answer, "usage": usage, "cost": resp.cost}
+
+    CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    with CACHE_FILE.open("w", encoding="utf-8") as fh:
+        json.dump(data, fh)
+
+
+_load_cache()
 
 
 class ChatGPTClient:
@@ -124,4 +166,5 @@ class ChatGPTClient:
 
         response = ChatGPTResponse(answer, usage, cost)
         CACHE[key] = response
+        _save_cache()
         return response

@@ -20,14 +20,15 @@ class DummyClient:
 
 
 @pytest.fixture(autouse=True)
-def patch_openai(monkeypatch):
-    monkeypatch.setattr(
-        "quiz_automation.chatgpt_client.OpenAI", lambda api_key: DummyClient()
-    )
-    monkeypatch.setattr(
-        "quiz_automation.chatgpt_client.settings.openai_api_key", "test-key"
-    )
-    monkeypatch.setattr("quiz_automation.chatgpt_client.CACHE", {})
+def patch_openai(monkeypatch, tmp_path):
+    import quiz_automation.chatgpt_client as cg
+
+    monkeypatch.setattr(cg, "OpenAI", lambda api_key: DummyClient())
+    monkeypatch.setattr(cg.settings, "openai_api_key", "test-key")
+    cache_file = tmp_path / "cache.json"
+    monkeypatch.setattr(cg, "CACHE_FILE", cache_file)
+    cg.CACHE = {}
+    cg._save_cache()
 
 
 def test_chatgpt_client_parsing(monkeypatch):
@@ -150,4 +151,41 @@ def test_chatgpt_client_uses_cache(monkeypatch):
     assert counting.calls == 1
     assert isinstance(second, ChatGPTResponse)
     assert second.answer == "A"
+
+
+def test_chatgpt_client_persistent_cache(monkeypatch):
+    class CountingResponses:
+        def __init__(self):
+            self.calls = 0
+
+        def create(self, **_: str):  # noqa: D401
+            self.calls += 1
+            text = json.dumps({"answer": "A"})
+            return SimpleNamespace(
+                output=[SimpleNamespace(content=[SimpleNamespace(text=text)])]
+            )
+
+    counting = CountingResponses()
+
+    class CountingClient:
+        responses = counting
+
+    import quiz_automation.chatgpt_client as cg
+
+    monkeypatch.setattr(cg, "OpenAI", lambda api_key: CountingClient())
+
+    client1 = cg.ChatGPTClient()
+    client1.ask("question")
+
+    assert counting.calls == 1
+
+    cg.CACHE = {}
+    cg._load_cache()
+
+    client2 = cg.ChatGPTClient()
+    response = client2.ask("question")
+
+    assert counting.calls == 1
+    assert isinstance(response, ChatGPTResponse)
+    assert response.answer == "A"
 
