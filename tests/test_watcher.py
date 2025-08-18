@@ -1,19 +1,25 @@
-
+from threading import Event
+from PIL import Image
+import pytest
 
 from quiz_automation.watcher import Watcher
 
-from PIL import Image
 
-
+def test_is_new_question() -> None:
+    def on_question(_: str) -> None:
         pass
 
     watcher = Watcher((0, 0, 1, 1), on_question)
-
     assert watcher.is_new_question("q1")
     watcher._last_text = "q1"  # simulate previous question
     assert not watcher.is_new_question("q1")
 
 
+def test_run_calls_on_question_and_saves(tmp_path, mocker) -> None:
+    texts = ["q1"]
+
+    def capture(_: tuple[int, int, int, int]) -> Image.Image:
+        return Image.new("RGB", (1, 1))
 
     def ocr(_: Image.Image) -> str:
         if texts:
@@ -43,7 +49,6 @@ from PIL import Image
 
 
 def test_run_survives_capture_and_ocr_errors(mocker) -> None:
-
     capture_event = Event()
     ocr_event = Event()
     errors: list[Exception] = []
@@ -82,7 +87,5 @@ def test_run_survives_capture_and_ocr_errors(mocker) -> None:
 
     watcher.join(timeout=1)
     assert not watcher.is_alive()
-
     on_question.assert_called_once_with("q1")
     assert len(errors) == 2
-
