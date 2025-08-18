@@ -17,6 +17,8 @@ from __future__ import annotations
 
 import json
 import time
+from types import SimpleNamespace
+=======
 from dataclasses import dataclass
 from typing import Any
 
@@ -25,6 +27,10 @@ from openai import OpenAI
 from .config import Settings, get_settings
 from .utils import hash_text
 
+settings = get_settings()
+
+
+=======
 
 @dataclass
 class ChatGPTResponse:
@@ -94,6 +100,31 @@ class ChatGPTClient:
                     temperature=self.settings.openai_temperature,
                     input=prompt,
                 )
+
+                try:
+                    text = completion.output[0].content[0].text
+                    data = json.loads(text)
+                    answer = data.get("answer", "")
+                    usage = getattr(completion, "usage", None)
+                    input_tokens = getattr(usage, "input_tokens", 0)
+                    output_tokens = getattr(usage, "output_tokens", 0)
+                    cost = (
+                        input_tokens * self.settings.openai_input_cost
+                        + output_tokens * self.settings.openai_output_cost
+                    ) / 1000
+                    resp = ChatGPTResponse(answer, usage, cost)
+                    CACHE[key] = resp
+                    return resp
+                except Exception:
+                    return ChatGPTResponse(
+                        "Error: malformed response", None, 0.0
+                    )
+            except Exception:
+                time.sleep(backoff)
+                backoff *= 2
+
+        return ChatGPTResponse("Error: API request failed", None, 0.0)
+=======
                 break
             except Exception:
                 if attempt == 2:

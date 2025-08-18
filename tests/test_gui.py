@@ -1,5 +1,7 @@
 from types import SimpleNamespace
 
+import openai  # noqa: F401  # ensure stub is loaded
+
 from quiz_automation.gui import QuizGUI
 from quiz_automation.region_selector import Region
 from quiz_automation.chatgpt_client import ChatGPTResponse

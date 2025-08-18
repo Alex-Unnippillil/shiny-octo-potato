@@ -2,6 +2,7 @@ import json
 from types import SimpleNamespace
 
 import pytest
+import openai  # noqa: F401  # ensure stub is loaded
 
 from quiz_automation.chatgpt_client import ChatGPTClient, ChatGPTResponse
 
@@ -138,6 +139,9 @@ def test_chatgpt_client_uses_cache(monkeypatch):
     monkeypatch.setattr("quiz_automation.chatgpt_client.CACHE", {})
 
     client = ChatGPTClient()
+    client.ask("What?")
+    client.ask("What?")
+=======
     client.ask("question")
     client.ask("question")
 

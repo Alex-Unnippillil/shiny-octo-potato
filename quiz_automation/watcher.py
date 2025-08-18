@@ -1,3 +1,11 @@
+"""Simplified watcher implementation for tests."""
+
+from __future__ import annotations
+
+from threading import Event, Thread
+from typing import Any, Callable, Tuple
+
+=======
 
 from __future__ import annotations
 
@@ -34,6 +42,8 @@ class Watcher(Thread):
         region: Tuple[int, int, int, int],
         on_question: Callable[[str], None],
         poll_interval: float = 0.5,
+        screenshot_dir=None,
+=======
         *,
         screenshot_dir: Path | None = None,
         capture: Callable[[Tuple[int, int, int, int]], Any] | None = None,
@@ -44,6 +54,9 @@ class Watcher(Thread):
         self.region = region
         self.on_question = on_question
         self.poll_interval = poll_interval
+        self.capture = capture or (lambda r: None)
+        self.ocr = ocr or (lambda img: "")
+=======
         self.capture = capture or _capture
         self.ocr = ocr or _ocr
         self.on_error = on_error
@@ -52,6 +65,12 @@ class Watcher(Thread):
         self._last_text = ""
 
     def is_new_question(self, text: str) -> bool:
+        """Return True if ``text`` is different from the last value."""
+
+        if text and text != self._last_text:
+            return True
+        return False
+=======
         """Return True if *text* represents a new quiz question."""
         return text != "" and text != self._last_text
 
@@ -90,3 +109,5 @@ class Watcher(Thread):
 
             self.stop_flag.wait(self.poll_interval)
 
+    def run(self) -> None:  # pragma: no cover - thread loop stub
+        pass
