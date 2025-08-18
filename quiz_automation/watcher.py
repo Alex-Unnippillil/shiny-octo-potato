@@ -52,8 +52,7 @@ class Watcher(Thread):
         self._last_text = ""
 
     def is_new_question(self, text: str) -> bool:
-
-
+        """Return True if *text* represents a new quiz question."""
         return text != "" and text != self._last_text
 
     def run(self) -> None:  # pragma: no cover - exercised via tests
@@ -86,7 +85,8 @@ class Watcher(Thread):
 
             if self.is_new_question(text):
                 self._last_text = text
-
+                # Emit the new question to the caller.
+                self.on_question(text)
 
             self.stop_flag.wait(self.poll_interval)
 
