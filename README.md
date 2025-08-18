@@ -48,6 +48,12 @@ Quiz events are stored in an SQLite database named `events.db` in the project di
 sqlite3 events.db "SELECT * FROM events;"
 ```
 
+Export all events to a CSV file with the CLI:
+
+```bash
+python -m quiz_automation.cli export-logs --out events.csv
+```
+
 ## Testing
 
 Run linting and tests locally:

@@ -1,6 +1,5 @@
 from threading import Event
 from PIL import Image
-import pytest
 
 from quiz_automation.watcher import Watcher
 

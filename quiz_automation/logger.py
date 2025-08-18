@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import csv
 import sqlite3
 from pathlib import Path
 
@@ -48,6 +49,15 @@ class QuizLogger:
             (ts, question, answer, x, y, input_tokens, output_tokens, cost),
         )
         self.conn.commit()
+
+    def export_csv(self, path: Path) -> None:
+        """Dump all events rows to a CSV file at ``path``."""
+        cursor = self.conn.execute("SELECT * FROM events")
+        headers = [col[0] for col in cursor.description]
+        with path.open("w", newline="") as fh:
+            writer = csv.writer(fh)
+            writer.writerow(headers)
+            writer.writerows(cursor.fetchall())
 
     def close(self) -> None:
         """Close the underlying SQLite connection."""
