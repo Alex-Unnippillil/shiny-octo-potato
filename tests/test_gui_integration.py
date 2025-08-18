@@ -27,6 +27,7 @@ def test_on_question_flow(monkeypatch):
 
         def log(self, ts, question, answer, x, y, in_toks, out_toks, cost):
             calls['log'] = (ts, question, answer, x, y, in_toks, out_toks, cost)
+            return cost
 
         def close(self):
             calls['closed'] = True
@@ -106,6 +107,9 @@ def test_on_question_flow(monkeypatch):
     assert calls['log'][5] == 1
     assert calls['log'][6] == 2
     assert calls['log'][7] == 0.5
+
+    assert gui.total_cost == 0.5
+    assert gui.status_var.get() == "Running – $0.50"
 
     gui.shutdown()
     assert calls['closed'] is True

@@ -38,7 +38,7 @@ class QuizLogger:
         input_tokens: int,
         output_tokens: int,
         cost: float,
-    ) -> None:
+    ) -> float:
         self.conn.execute(
             """
             INSERT INTO events (
@@ -48,6 +48,7 @@ class QuizLogger:
             (ts, question, answer, x, y, input_tokens, output_tokens, cost),
         )
         self.conn.commit()
+        return cost
 
     def close(self) -> None:
         """Close the underlying SQLite connection."""
