@@ -1,10 +1,12 @@
-
+from threading import Event
 
 from quiz_automation.watcher import Watcher
 
 from PIL import Image
 
 
+def test_is_new_question() -> None:
+    def on_question(_: str) -> None:
         pass
 
     watcher = Watcher((0, 0, 1, 1), on_question)
@@ -14,6 +16,11 @@ from PIL import Image
     assert not watcher.is_new_question("q1")
 
 
+def test_run_invokes_callback_and_saves_screenshot(mocker, tmp_path) -> None:
+    texts = ["q1", "q1"]
+
+    def capture(_: tuple[int, int, int, int]) -> Image.Image:
+        return Image.new("RGB", (1, 1))
 
     def ocr(_: Image.Image) -> str:
         if texts:
@@ -43,7 +50,6 @@ from PIL import Image
 
 
 def test_run_survives_capture_and_ocr_errors(mocker) -> None:
-
     capture_event = Event()
     ocr_event = Event()
     errors: list[Exception] = []

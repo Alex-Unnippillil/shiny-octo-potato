@@ -52,9 +52,9 @@ class Watcher(Thread):
         self._last_text = ""
 
     def is_new_question(self, text: str) -> bool:
+        """Return True if *text* is non-empty and new."""
 
-
-        return text != "" and text != self._last_text
+        return text and text != self._last_text
 
     def run(self) -> None:  # pragma: no cover - exercised via tests
         while not self.stop_flag.is_set():
@@ -86,7 +86,14 @@ class Watcher(Thread):
 
             if self.is_new_question(text):
                 self._last_text = text
-
+                try:
+                    self.on_question(text)
+                except Exception as exc:  # pragma: no cover - logging behaviour
+                    logging.exception("Question callback failed")
+                    if self.on_error:
+                        self.on_error(exc)
+                self.stop_flag.wait(self.poll_interval)
+                continue
 
             self.stop_flag.wait(self.poll_interval)
 
