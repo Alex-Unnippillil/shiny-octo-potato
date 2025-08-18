@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from quiz_automation.chatgpt_client import ChatGPTClient
+from quiz_automation.chatgpt_client import ChatGPTClient, ChatGPTResponse
 
 
 class DummyResponses:
@@ -139,5 +139,13 @@ def test_chatgpt_client_uses_cache(monkeypatch):
 
     client = ChatGPTClient()
 
+    first = client.ask("question")
     assert counting.calls == 1
+    assert isinstance(first, ChatGPTResponse)
+    assert first.answer == "A"
+
+    second = client.ask("question")
+    assert counting.calls == 1
+    assert isinstance(second, ChatGPTResponse)
+    assert second.answer == "A"
 
