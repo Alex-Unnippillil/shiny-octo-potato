@@ -2,10 +2,14 @@ from quiz_automation.config import get_settings
 
 
 def test_config_defaults(monkeypatch):
+    """Ensure environment defaults are applied when variables are absent."""
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.delenv("OPENAI_MODEL", raising=False)
     monkeypatch.delenv("OPENAI_TEMPERATURE", raising=False)
     monkeypatch.delenv("POLL_INTERVAL", raising=False)
+    monkeypatch.delenv("SCREENSHOT_DIR", raising=False)
+    monkeypatch.delenv("OPENAI_INPUT_COST", raising=False)
+    monkeypatch.delenv("OPENAI_OUTPUT_COST", raising=False)
 
     settings = get_settings()
     assert settings.poll_interval == 0.5
@@ -16,8 +20,7 @@ def test_config_defaults(monkeypatch):
     assert settings.openai_output_cost == 0.0
 
 
-
-def test_env_vars(monkeypatch):
+def test_env_var_overrides(monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", "abc")
     monkeypatch.setenv("OPENAI_MODEL", "gpt-4o-mini")
     monkeypatch.setenv("OPENAI_TEMPERATURE", "0.7")

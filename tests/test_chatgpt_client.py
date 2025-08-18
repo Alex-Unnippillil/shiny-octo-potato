@@ -4,7 +4,7 @@ from types import SimpleNamespace
 import pytest
 import openai  # noqa: F401  # ensure stub is loaded
 
-from quiz_automation.chatgpt_client import ChatGPTClient
+from quiz_automation.chatgpt_client import ChatGPTClient, ChatGPTResponse
 
 
 class DummyResponses:
@@ -136,10 +136,22 @@ def test_chatgpt_client_uses_cache(monkeypatch):
     monkeypatch.setattr(
         "quiz_automation.chatgpt_client.OpenAI", lambda api_key: CountingClient()
     )
+    monkeypatch.setattr("quiz_automation.chatgpt_client.CACHE", {})
 
     client = ChatGPTClient()
     client.ask("What?")
     client.ask("What?")
+=======
+    client.ask("question")
+    client.ask("question")
 
+    first = client.ask("question")
     assert counting.calls == 1
+    assert isinstance(first, ChatGPTResponse)
+    assert first.answer == "A"
+
+    second = client.ask("question")
+    assert counting.calls == 1
+    assert isinstance(second, ChatGPTResponse)
+    assert second.answer == "A"
 

@@ -5,9 +5,37 @@ from __future__ import annotations
 from threading import Event, Thread
 from typing import Any, Callable, Tuple
 
+=======
+
+from __future__ import annotations
+
+import logging
+import time
+from pathlib import Path
+from threading import Event, Thread
+from typing import Any, Callable, Tuple
+
+from mss import mss
+from PIL import Image
+import pytesseract
+
+
+def _capture(region: Tuple[int, int, int, int]) -> Image.Image:
+
+    left, top, width, height = region
+    monitor = {"left": left, "top": top, "width": width, "height": height}
+    with mss() as sct:
+        shot = sct.grab(monitor)
+        return Image.frombytes("RGB", shot.size, shot.rgb)
+
+
+def _ocr(img: Any) -> str:
+
+    return pytesseract.image_to_string(img).strip()
+
 
 class Watcher(Thread):
-    """Background thread that captures a region and performs OCR."""
+    """Thread that repeatedly captures a region and emits new questions."""
 
     def __init__(
         self,
@@ -15,6 +43,9 @@ class Watcher(Thread):
         on_question: Callable[[str], None],
         poll_interval: float = 0.5,
         screenshot_dir=None,
+=======
+        *,
+        screenshot_dir: Path | None = None,
         capture: Callable[[Tuple[int, int, int, int]], Any] | None = None,
         ocr: Callable[[Any], str] | None = None,
         on_error: Callable[[Exception], None] | None = None,
@@ -25,7 +56,11 @@ class Watcher(Thread):
         self.poll_interval = poll_interval
         self.capture = capture or (lambda r: None)
         self.ocr = ocr or (lambda img: "")
+=======
+        self.capture = capture or _capture
+        self.ocr = ocr or _ocr
         self.on_error = on_error
+        self.screenshot_dir = screenshot_dir
         self.stop_flag = Event()
         self._last_text = ""
 
@@ -35,6 +70,44 @@ class Watcher(Thread):
         if text and text != self._last_text:
             return True
         return False
+=======
+        """Return True if *text* represents a new quiz question."""
+        return text != "" and text != self._last_text
+
+    def run(self) -> None:  # pragma: no cover - exercised via tests
+        while not self.stop_flag.is_set():
+            try:
+                img = self.capture(self.region)
+            except Exception as exc:  # pragma: no cover - logging behaviour
+                logging.exception("Screenshot capture failed")
+                if self.on_error:
+                    self.on_error(exc)
+                self.stop_flag.wait(self.poll_interval)
+                continue
+
+            if self.screenshot_dir:
+                try:
+                    self.screenshot_dir.mkdir(parents=True, exist_ok=True)
+                    ts = int(time.time())
+                    img.save(self.screenshot_dir / f"{ts}.png")
+                except Exception:  # pragma: no cover - best effort, log only
+                    logging.exception("Failed to save screenshot")
+
+            try:
+                text = self.ocr(img)
+            except Exception as exc:  # pragma: no cover - logging behaviour
+                logging.exception("OCR failed")
+                if self.on_error:
+                    self.on_error(exc)
+                self.stop_flag.wait(self.poll_interval)
+                continue
+
+            if self.is_new_question(text):
+                self._last_text = text
+                # Emit the new question to the caller.
+                self.on_question(text)
+
+            self.stop_flag.wait(self.poll_interval)
 
     def run(self) -> None:  # pragma: no cover - thread loop stub
         pass

@@ -4,6 +4,7 @@ import openai  # noqa: F401  # ensure stub is loaded
 
 from quiz_automation.gui import QuizGUI
 from quiz_automation.region_selector import Region
+from quiz_automation.chatgpt_client import ChatGPTResponse
 
 
 def test_on_question_flow(monkeypatch):
@@ -16,7 +17,7 @@ def test_on_question_flow(monkeypatch):
         def ask(self, question: str):  # noqa: D401
             calls['question'] = question
             usage = SimpleNamespace(input_tokens=1, output_tokens=2)
-            return 'B', usage, 0.5
+            return ChatGPTResponse('B', usage, 0.5)
 
     def dummy_click(letter, region, offsets_map=None, num_options=None):
         calls['click'] = (letter, region)
@@ -103,6 +104,10 @@ def test_on_question_flow(monkeypatch):
         2,
         0.5,
     )
+    # ensure token accounting and cost are preserved
+    assert calls['log'][5] == 1
+    assert calls['log'][6] == 2
+    assert calls['log'][7] == 0.5
 
     gui.shutdown()
     assert calls['closed'] is True

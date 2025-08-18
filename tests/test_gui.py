@@ -4,6 +4,7 @@ import openai  # noqa: F401  # ensure stub is loaded
 
 from quiz_automation.gui import QuizGUI
 from quiz_automation.region_selector import Region
+from quiz_automation.chatgpt_client import ChatGPTResponse
 
 
 def _ensure_api_key(monkeypatch) -> None:
@@ -90,6 +91,10 @@ def test_gui_start_stop(monkeypatch):
     )
     monkeypatch.setattr(
         "quiz_automation.chatgpt_client.settings.openai_api_key", "test-key"
+    )
+    monkeypatch.setattr(
+        "quiz_automation.gui.ChatGPTClient.ask",
+        lambda self, q: ChatGPTResponse("A", None, 0.0),
     )
 
 
