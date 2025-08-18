@@ -3,6 +3,7 @@ from PIL import Image
 import pytest
 
 from quiz_automation.watcher import Watcher
+from quiz_automation.utils import hash_text
 
 
 def test_is_new_question() -> None:
@@ -15,8 +16,8 @@ def test_is_new_question() -> None:
     assert not watcher.is_new_question("q1")
 
 
-def test_run_calls_on_question_and_saves(tmp_path, mocker) -> None:
-    texts = ["q1"]
+def test_run_calls_on_question_and_saves_once(tmp_path, mocker) -> None:
+    texts = ["q1", "q1"]
 
     def capture(_: tuple[int, int, int, int]) -> Image.Image:
         return Image.new("RGB", (1, 1))
@@ -29,7 +30,6 @@ def test_run_calls_on_question_and_saves(tmp_path, mocker) -> None:
 
     ocr_mock = mocker.Mock(side_effect=ocr)
     on_question = mocker.Mock()
-    mocker.patch("time.time", return_value=1234)
 
     watcher = Watcher(
         (0, 0, 1, 1),
@@ -45,7 +45,8 @@ def test_run_calls_on_question_and_saves(tmp_path, mocker) -> None:
 
     assert not watcher.is_alive()
     on_question.assert_called_once_with("q1")
-    assert (tmp_path / "1234.png").exists()
+    files = list(tmp_path.iterdir())
+    assert files == [tmp_path / f"{hash_text('q1')}.png"]
 
 
 def test_run_survives_capture_and_ocr_errors(mocker) -> None:

@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import logging
-import time
 from pathlib import Path
 from threading import Event, Thread
 from typing import Any, Callable, Tuple
@@ -10,6 +9,7 @@ from typing import Any, Callable, Tuple
 from mss import mss
 from PIL import Image
 import pytesseract
+from .utils import hash_text
 
 
 def _capture(region: Tuple[int, int, int, int]) -> Image.Image:
@@ -66,14 +66,6 @@ class Watcher(Thread):
                 self.stop_flag.wait(self.poll_interval)
                 continue
 
-            if self.screenshot_dir:
-                try:
-                    self.screenshot_dir.mkdir(parents=True, exist_ok=True)
-                    ts = int(time.time())
-                    img.save(self.screenshot_dir / f"{ts}.png")
-                except Exception:  # pragma: no cover - best effort, log only
-                    logging.exception("Failed to save screenshot")
-
             try:
                 text = self.ocr(img)
             except Exception as exc:  # pragma: no cover - logging behaviour
@@ -85,6 +77,13 @@ class Watcher(Thread):
 
             if self.is_new_question(text):
                 self._last_text = text
+                if self.screenshot_dir:
+                    try:
+                        self.screenshot_dir.mkdir(parents=True, exist_ok=True)
+                        filename = hash_text(text)
+                        img.save(self.screenshot_dir / f"{filename}.png")
+                    except Exception:  # pragma: no cover - best effort, log only
+                        logging.exception("Failed to save screenshot")
                 # Emit the new question to the caller.
                 self.on_question(text)
 
