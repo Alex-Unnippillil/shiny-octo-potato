@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import patch  # Allows us to mock pyautogui during tests
 
 import pytest
 import pyautogui  # noqa: F401  # ensure stub is loaded
