@@ -37,6 +37,7 @@ class QuizGUI:
         self.event_queue: "queue.Queue[str]" = queue.Queue()
         self.watcher: Optional[Watcher] = None
         self.region: Optional[Region] = None
+        self.total_cost = 0.0
 
         start_btn = tk.Button(self.root, text="Start", command=self.start)
         start_btn.pack()
@@ -59,7 +60,7 @@ class QuizGUI:
             screenshot_dir=self.settings.screenshot_dir,
         )
         self.watcher.start()
-        self.status_var.set("Running")
+        self.status_var.set(f"Running – ${self.total_cost:.2f}")
 
     def stop(self) -> None:
         """Stop the watcher thread."""
@@ -89,6 +90,8 @@ class QuizGUI:
             output_tokens,
             resp.cost,
         )
+        self.total_cost += resp.cost
+        self.status_var.set(f"Running – ${self.total_cost:.2f}")
         self.event_queue.put(f"{text} -> {resp.answer}")
 
     def process_events(self) -> None:
@@ -96,7 +99,8 @@ class QuizGUI:
             text = self.event_queue.get_nowait()
             self.status_var.set(text)
         except queue.Empty:
-            pass
+            if self.watcher and self.watcher.is_alive():
+                self.status_var.set(f"Running – ${self.total_cost:.2f}")
         self.root.after(100, self.process_events)
 
     def run(self) -> None:
